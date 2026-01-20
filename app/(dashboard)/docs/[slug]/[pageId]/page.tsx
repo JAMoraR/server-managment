@@ -89,7 +89,7 @@ export default async function DocsPageDetail({
           <Card>
             <CardContent className="p-6">
               <h2 className="text-2xl font-bold mb-4">{page.title}</h2>
-              <div className="prose prose-sm max-w-none dark:prose-invert">
+              <div className="prose prose-sm max-w-none dark:prose-invert [&_p]:whitespace-pre-line [&_h3]:mt-8 [&_h3]:mb-4 [&_h3]:first:mt-0 [&_p]:my-4 [&_ul]:my-4">
                 <ReactMarkdown
                   remarkPlugins={[remarkBreaks, remarkGfm]}
                 >
