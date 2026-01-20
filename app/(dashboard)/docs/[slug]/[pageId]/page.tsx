@@ -3,6 +3,8 @@ import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 import ReactMarkdown from "react-markdown"
+import remarkBreaks from "remark-breaks"
+import remarkGfm from "remark-gfm"
 
 export default async function DocsPageDetail({
   params,
@@ -87,8 +89,12 @@ export default async function DocsPageDetail({
           <Card>
             <CardContent className="p-6">
               <h2 className="text-2xl font-bold mb-4">{page.title}</h2>
-              <div className="prose prose-sm max-w-none">
-                <ReactMarkdown>{page.content}</ReactMarkdown>
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown
+                  remarkPlugins={[remarkBreaks, remarkGfm]}
+                >
+                  {page.content}
+                </ReactMarkdown>
               </div>
             </CardContent>
           </Card>

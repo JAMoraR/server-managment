@@ -3,6 +3,8 @@ import { notFound } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 import ReactMarkdown from "react-markdown"
+import remarkBreaks from "remark-breaks"
+import remarkGfm from "remark-gfm"
 
 export default async function DocsSectionPage({
   params,
