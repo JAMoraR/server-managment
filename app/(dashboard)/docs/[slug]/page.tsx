@@ -48,7 +48,12 @@ export default async function DocsSectionPage({
           <Card>
             <CardContent className="p-4">
               <nav className="space-y-1">
-                {sections?.map((s: any) => (
+                {sections?.map((s: any) => {
+                  const sortedPages = s.documentation_pages
+                    ? [...s.documentation_pages].sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+                    : [];
+                  
+                  return (
                   <div key={s.id} className="space-y-1">
                     <Link
                       href={`/docs/${s.slug}`}
@@ -58,9 +63,9 @@ export default async function DocsSectionPage({
                     >
                       {s.title}
                     </Link>
-                    {s.documentation_pages && s.documentation_pages.length > 0 && (
+                    {sortedPages.length > 0 && (
                       <div className="ml-4 space-y-1">
-                        {s.documentation_pages.map((page: any) => (
+                        {sortedPages.map((page: any) => (
                           <Link
                             key={page.id}
                             href={`/docs/${s.slug}/${page.id}`}
@@ -72,7 +77,8 @@ export default async function DocsSectionPage({
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </nav>
             </CardContent>
           </Card>

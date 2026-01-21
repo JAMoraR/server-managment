@@ -48,22 +48,26 @@ export default async function DocsPageDetail({
           <Card>
             <CardContent className="p-4">
               <nav className="space-y-1">
-                {sections?.map((section: any) => (
-                  <div key={section.id} className="space-y-1">
-                    <Link
-                      href={`/docs/${section.slug}`}
-                      className={`block px-3 py-2 text-sm font-medium rounded-lg hover:bg-accent ${
-                        section.id === page.documentation_sections.id
-                          ? "bg-accent"
-                          : ""
-                      }`}
-                    >
-                      {section.title}
-                    </Link>
-                    {section.documentation_pages &&
-                      section.documentation_pages.length > 0 && (
+                {sections?.map((section: any) => {
+                  const sortedPages = section.documentation_pages
+                    ? [...section.documentation_pages].sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+                    : [];
+                  
+                  return (
+                    <div key={section.id} className="space-y-1">
+                      <Link
+                        href={`/docs/${section.slug}`}
+                        className={`block px-3 py-2 text-sm font-medium rounded-lg hover:bg-accent ${
+                          section.id === page.documentation_sections.id
+                            ? "bg-accent"
+                            : ""
+                        }`}
+                      >
+                        {section.title}
+                      </Link>
+                      {sortedPages.length > 0 && (
                         <div className="ml-4 space-y-1">
-                          {section.documentation_pages.map((p: any) => (
+                          {sortedPages.map((p: any) => (
                             <Link
                               key={p.id}
                               href={`/docs/${section.slug}/${p.id}`}
@@ -78,8 +82,9 @@ export default async function DocsPageDetail({
                           ))}
                         </div>
                       )}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </nav>
             </CardContent>
           </Card>

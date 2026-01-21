@@ -67,9 +67,20 @@ export async function createDocumentationPage(formData: FormData) {
   const title = formData.get("title") as string
   const content = formData.get("content") as string
 
+  // Get the current max order for this section
+  const { data: existingPages } = await supabase
+    .from("documentation_pages")
+    .select("order")
+    .eq("section_id", section_id)
+    .order("order", { ascending: false })
+    .limit(1)
+
+  const maxOrder = existingPages && existingPages.length > 0 ? (existingPages[0].order || 0) : -1
+  const newOrder = maxOrder + 1
+
   const { error } = await supabase
     .from("documentation_pages")
-    .insert({ section_id, title, content })
+    .insert({ section_id, title, content, order: newOrder })
 
   if (error) {
     return { error: error.message }
@@ -107,6 +118,46 @@ export async function deleteDocumentationPage(pageId: string) {
 
   if (error) {
     return { error: error.message }
+  }
+
+  revalidatePath("/admin/documentation")
+  revalidatePath("/docs")
+  return { success: true }
+}
+
+export async function reorderSections(sections: Array<{ id: string; order: number }>) {
+  const supabase = await createClient()
+
+  // Update each section's order
+  for (const section of sections) {
+    const { error } = await supabase
+      .from("documentation_sections")
+      .update({ order: section.order })
+      .eq("id", section.id)
+
+    if (error) {
+      return { error: error.message }
+    }
+  }
+
+  revalidatePath("/admin/documentation")
+  revalidatePath("/docs")
+  return { success: true }
+}
+
+export async function reorderPages(pages: Array<{ id: string; order: number }>) {
+  const supabase = await createClient()
+
+  // Update each page's order
+  for (const page of pages) {
+    const { error } = await supabase
+      .from("documentation_pages")
+      .update({ order: page.order })
+      .eq("id", page.id)
+
+    if (error) {
+      return { error: error.message }
+    }
   }
 
   revalidatePath("/admin/documentation")
