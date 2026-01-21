@@ -1,9 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
-import Link from "next/link"
-import ReactMarkdown from "react-markdown"
-import remarkBreaks from "remark-breaks"
-import remarkGfm from "remark-gfm"
+import { DocsSidebar } from "@/components/docs-sidebar"
 
 export default async function DocsPage() {
   const supabase = await createClient()
@@ -47,41 +44,7 @@ export default async function DocsPage() {
 
       <div className="grid gap-6 lg:grid-cols-4">
         <aside className="lg:col-span-1">
-          <Card>
-            <CardContent className="p-4">
-              <nav className="space-y-1">
-                {sections.map((section: any) => {
-                  const sortedPages = section.documentation_pages
-                    ? [...section.documentation_pages].sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-                    : [];
-                  
-                  return (
-                    <div key={section.id} className="space-y-1">
-                      <Link
-                        href={`/docs/${section.slug}`}
-                        className="block px-3 py-2 text-sm font-medium rounded-lg hover:bg-accent"
-                      >
-                        {section.title}
-                      </Link>
-                      {sortedPages.length > 0 && (
-                        <div className="ml-4 space-y-1">
-                          {sortedPages.map((page: any) => (
-                            <Link
-                              key={page.id}
-                              href={`/docs/${section.slug}/${page.id}`}
-                              className="block px-3 py-1.5 text-sm text-muted-foreground rounded-lg hover:bg-accent hover:text-foreground"
-                            >
-                              {page.title}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </nav>
-            </CardContent>
-          </Card>
+          <DocsSidebar sections={sections} />
         </aside>
 
         <div className="lg:col-span-3">
