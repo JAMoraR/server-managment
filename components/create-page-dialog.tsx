@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,14 +31,21 @@ interface CreatePageDialogProps {
     id: string
     title: string
   }>
+  defaultSectionId?: string
 }
 
-export function CreatePageDialog({ sections }: CreatePageDialogProps) {
+export function CreatePageDialog({ sections, defaultSectionId }: CreatePageDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [selectedSection, setSelectedSection] = useState("")
+  const [selectedSection, setSelectedSection] = useState(defaultSectionId || "")
   const { toast } = useToast()
   const router = useRouter()
+
+  useEffect(() => {
+    if (defaultSectionId) {
+      setSelectedSection(defaultSectionId)
+    }
+  }, [defaultSectionId])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -68,9 +75,9 @@ export function CreatePageDialog({ sections }: CreatePageDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button size="sm">
           <Plus className="mr-2 h-4 w-4" />
-          Create Page
+          Nueva Página
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
