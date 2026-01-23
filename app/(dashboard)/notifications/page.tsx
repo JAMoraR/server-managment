@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { CheckCircle2, XCircle, Clock } from "lucide-react"
+import { CheckCircle2, XCircle, Clock, MessageSquare, Bell } from "lucide-react"
 
 // Revalidar cada 30 segundos
 export const revalidate = 30
@@ -14,6 +14,14 @@ export default async function NotificationsPage() {
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
+  // Obtener notificaciones generales
+  const { data: notifications } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", session?.user.id!)
+    .order("created_at", { ascending: false })
+
+  // Obtener solicitudes (para compatibilidad con el sistema anterior)
   const { data: requests } = await supabase
     .from("assignment_requests")
     .select(`
@@ -29,8 +37,19 @@ export default async function NotificationsPage() {
     .order("created_at", { ascending: false })
 
   const isRecent = (createdAt: string) => {
-    const requestDate = new Date(createdAt)
-    return requestDate >= sevenDaysAgo
+    const date = new Date(createdAt)
+    return date >= sevenDaysAgo
+  }
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "assignment_response":
+        return <Bell className="h-4 w-4" />
+      case "task_comment":
+        return <MessageSquare className="h-4 w-4" />
+      default:
+        return <Bell className="h-4 w-4" />
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -79,18 +98,82 @@ export default async function NotificationsPage() {
       <div className="animate-fade-in-down">
         <h1 className="text-3xl font-bold">Mis Notificaciones</h1>
         <p className="text-muted-foreground mt-2">
-          Estado de tus solicitudes de asignación a tareas
+          Notificaciones y estado de tus solicitudes de asignación
         </p>
       </div>
 
-      <div className="space-y-4">
-        {requests && requests.length > 0 ? (
-          requests.map((request: any, index) => {
-            const isNew = request.status !== "pending" && isRecent(request.created_at)
-            return (
-              <Card
-                key={request.id}
-                className={`hover:shadow-lg hover:scale-[1.01] transition-all animate-fade-in-up ${
+      {/* Notificaciones generales */}
+      {notifications && notifications.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold">Notificaciones Recientes</h2>
+          <div className="space-y-3">
+            {notifications.map((notification: any, index) => {
+              const isNew = !notification.read && isRecent(notification.created_at)
+              return (
+                <Card
+                  key={notification.id}
+                  className={`hover:shadow-lg hover:scale-[1.01] transition-all animate-fade-in-up ${
+                    isNew ? "ring-2 ring-primary" : ""
+                  } ${!notification.read ? "bg-accent/50" : ""}`}
+                  style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'backwards' }}
+                >
+                  <CardContent className="py-4">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {notification.link ? (
+                              <Link href={notification.link} className="font-semibold hover:underline">
+                                {notification.title}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold">{notification.title}</span>
+                            )}
+                            {isNew && (
+                              <Badge className="text-xs">Nuevo</Badge>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(notification.created_at).toLocaleDateString('es-MX', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{notification.message}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ){request.admin_comment && (
+                    <div className="mb-3 p-3 bg-muted rounded-lg">
+                      <p className="text-xs font-semibold mb-1">Comentario del administrador:</p>
+                      <p className="text-sm">{request.admin_comment}</p>
+                    </div>
+                  )}
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {request.tasks.description}
+                  </p>
+                </CardContent>
+              </Card>
+            )
+          })
+        ) : (
+          <Card className="animate-scale-in">
+            <CardContent className="py-10 text-center">
+              <p className="text-muted-foreground">No tienes solicitudes de asignación</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Cuando solicites ser asignado a una tarea, verás el estado aquí
+              </p>
+            </CardContent>
+          </Card>
+        )}
+        </div>      className={`hover:shadow-lg hover:scale-[1.01] transition-all animate-fade-in-up ${
                   isNew ? "ring-2 ring-primary" : ""
                 }`}
                 style={{ animationDelay: `${index * 75}ms`, animationFillMode: 'backwards' }}

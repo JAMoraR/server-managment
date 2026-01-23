@@ -20,9 +20,10 @@ interface TaskCommentsProps {
     }
   }>
   isAssigned: boolean
+  isAdmin?: boolean
 }
 
-export function TaskComments({ taskId, comments, isAssigned }: TaskCommentsProps) {
+export function TaskComments({ taskId, comments, isAssigned, isAdmin = false }: TaskCommentsProps) {
   const [content, setContent] = useState("")
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
@@ -80,10 +81,14 @@ export function TaskComments({ taskId, comments, isAssigned }: TaskCommentsProps
           )}
         </div>
 
-        {isAssigned && (
+        {(isAssigned || isAdmin) && (
           <form onSubmit={handleSubmit} className="space-y-2">
             <Textarea
-              placeholder="Agregar una actualización de progreso..."
+              placeholder={
+                isAdmin && !isAssigned
+                  ? "Agregar feedback como administrador..."
+                  : "Agregar una actualización de progreso..."
+              }
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={3}

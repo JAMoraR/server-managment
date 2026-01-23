@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ReviewRequestDialog } from "@/components/review-request-dialog"
 import { handleAssignmentRequest } from "@/app/actions/task-actions"
+import Link from "next/link"
 
 // Revalidar cada 15 segundos para solicitudes
 export const revalidate = 15
@@ -15,19 +16,14 @@ export default async function AssignmentRequestsPage() {
     .select(`
       *,
       users (first_name, last_name, email),
-      tasks (title, description, status)
+      tasks (id, title, description, status)
     `)
     .eq("status", "pending")
     .order("created_at", { ascending: false })
 
-  async function approveRequest(requestId: string) {
+  async function handleReview(requestId: string, action: "approved" | "rejected", comment?: string) {
     "use server"
-    await handleAssignmentRequest(requestId, "approved")
-  }
-
-  async function rejectRequest(requestId: string) {
-    "use server"
-    await handleAssignmentRequest(requestId, "rejected")
+    await handleAssignmentRequest(requestId, action, comment)
   }
 
   return (
@@ -50,7 +46,12 @@ export default async function AssignmentRequestsPage() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-lg">{request.tasks.title}</CardTitle>
+                    <Link 
+                      href={`/tasks/${request.tasks.id}`}
+                      className="hover:underline"
+                    >
+                      <CardTitle className="text-lg">{request.tasks.title}</CardTitle>
+                    </Link>
                     <p className="text-sm text-muted-foreground mt-1">
                       Solicitado por {request.users.first_name} {request.users.last_name} (
                       {request.users.email})
@@ -66,16 +67,20 @@ export default async function AssignmentRequestsPage() {
                   {request.tasks.description}
                 </p>
                 <div className="flex gap-2">
-                  <form action={approveRequest.bind(null, request.id)}>
-                    <Button type="submit" size="sm">
-                      Aprobar
-                    </Button>
-                  </form>
-                  <form action={rejectRequest.bind(null, request.id)}>
-                    <Button type="submit" size="sm" variant="outline">
-                      Rechazar
-                    </Button>
-                  </form>
+                  <ReviewRequestDialog
+                    requestId={request.id}
+                    action="approved"
+                    onSubmit={handleReview}
+                    userName={`${request.users.first_name} ${request.users.last_name}`}
+                    taskTitle={request.tasks.title}
+                  />
+                  <ReviewRequestDialog
+                    requestId={request.id}
+                    action="rejected"
+                    onSubmit={handleReview}
+                    userName={`${request.users.first_name} ${request.users.last_name}`}
+                    taskTitle={request.tasks.title}
+                  />
                 </div>
               </CardContent>
             </Card>

@@ -115,6 +115,7 @@ export default async function TaskDetailPage({
               taskId={task.id}
               comments={comments || []}
               isAssigned={isAssigned}
+              isAdmin={isAdmin}
             />
           )}
         </div>

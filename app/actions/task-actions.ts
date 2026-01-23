@@ -209,19 +209,52 @@ export async function addComment(taskId: string, content: string) {
     return { error: "Not authenticated" }
   }
 
-  const { error } = await supabase
+  // Insert comment
+  const { data: comment, error } = await supabase
     .from("task_comments")
     .insert({
       task_id: taskId,
       user_id: session.user.id,
       content,
     })
+    .select()
+    .single()
 
   if (error) {
     return { error: error.message }
   }
 
+  // Get user info and task info
+  const [userResult, taskResult, assignedUsersResult] = await Promise.all([
+    supabase.from("users").select("role, first_name, last_name").eq("id", session.user.id).single(),
+    supabase.from("tasks").select("title").eq("id", taskId).single(),
+    supabase.from("task_assignments").select("user_id").eq("task_id", taskId)
+  ])
+
+  const user = userResult.data
+  const task = taskResult.data
+  const assignedUsers = assignedUsersResult.data || []
+
+  // If admin commented, notify all assigned users (except the admin)
+  if (user?.role === "admin" && assignedUsers.length > 0) {
+    const notificationsToCreate = assignedUsers
+      .filter((assignment: any) => assignment.user_id !== session.user.id)
+      .map((assignment: any) => ({
+        user_id: assignment.user_id,
+        type: "task_comment",
+        title: `Nuevo comentario en: ${task?.title || "Tarea"}`,
+        message: `${user.first_name} ${user.last_name} comentó: "${content.substring(0, 100)}${content.length > 100 ? "..." : ""}"`,
+        link: `/tasks/${taskId}`,
+        task_comment_id: comment.id
+      }))
+
+    if (notificationsToCreate.length > 0) {
+      await supabase.from("notifications").insert(notificationsToCreate)
+    }
+  }
+
   revalidatePath(`/tasks/${taskId}`)
+  revalidatePath("/notifications")
   return { success: true }
 }
 
@@ -263,13 +296,27 @@ export async function requestAssignment(taskId: string) {
   return { success: true }
 }
 
-export async function handleAssignmentRequest(requestId: string, action: "approved" | "rejected") {
+export async function handleAssignmentRequest(
+  requestId: string, 
+  action: "approved" | "rejected", 
+  adminComment?: string
+) {
   const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { error: "Not authenticated" }
+  }
   
-  // Update request status
+  // Update request status with admin info
   const { error: updateError, data: request } = await supabase
     .from("assignment_requests")
-    .update({ status: action })
+    .update({ 
+      status: action,
+      admin_comment: adminComment,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: session.user.id
+    })
     .eq("id", requestId)
     .select("task_id, user_id")
     .single()
@@ -277,6 +324,13 @@ export async function handleAssignmentRequest(requestId: string, action: "approv
   if (updateError) {
     return { error: updateError.message }
   }
+
+  // Get task info for notification
+  const { data: task } = await supabase
+    .from("tasks")
+    .select("title")
+    .eq("id", request.task_id)
+    .single()
 
   // If approved, create assignment
   if (action === "approved") {
@@ -291,6 +345,22 @@ export async function handleAssignmentRequest(requestId: string, action: "approv
       return { error: assignError.message }
     }
   }
+
+  // Create notification for user
+  const notificationMessage = adminComment 
+    ? `Tu solicitud ha sido ${action === "approved" ? "aprobada" : "rechazada"}. Comentario del administrador: "${adminComment}"`
+    : `Tu solicitud ha sido ${action === "approved" ? "aprobada" : "rechazada"}.`
+
+  await supabase
+    .from("notifications")
+    .insert({
+      user_id: request.user_id,
+      type: "assignment_response",
+      title: `Solicitud ${action === "approved" ? "Aprobada" : "Rechazada"}: ${task?.title || "Tarea"}`,
+      message: notificationMessage,
+      link: `/tasks/${request.task_id}`,
+      assignment_request_id: requestId
+    })
 
   revalidatePath("/admin/requests")
   revalidatePath("/tasks")

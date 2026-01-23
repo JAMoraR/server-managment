@@ -1,20 +1,24 @@
-# University Task Manager
+# Gestor de Tareas en Equipo
 
 Un sistema completo de gestión de tareas y documentación construido con Next.js, TypeScript, TailwindCSS, shadcn/ui y Supabase.
 
 ## Descripción General
 
-Este proyecto es una aplicación web para la gestión de tareas universitarias con un sistema de roles, documentación tipo wiki, y métricas de rendimiento. Implementa autenticación segura, políticas de seguridad a nivel de base de datos (RLS), y una arquitectura moderna basada en Next.js 14 App Router.
+Este proyecto es una aplicación web para la gestión de tareas con un sistema de roles, documentación tipo wiki, y métricas de rendimiento. Implementa autenticación segura, políticas de seguridad a nivel de base de datos (RLS), y una arquitectura moderna basada en Next.js App Router.
 
 ## Características Principales
 
 - **Autenticación**: Sistema de autenticación email/contraseña con Supabase Auth
 - **Control de Acceso por Roles**: Roles de administrador y usuario con permisos diferenciados
 - **Gestión de Tareas**: Creación, asignación y seguimiento de tareas
-- **Solicitudes de Asignación**: Los usuarios pueden solicitar ser asignados a tareas
+- **Solicitudes de Asignación**: Los usuarios pueden solicitar ser asignados a tareas (incluyendo tareas ya asignadas)
+- **Centro de Notificaciones**: Sistema de notificaciones para seguimiento de solicitudes
+- **Indicadores Visuales**: Puntos rojos pulsantes para notificaciones nuevas en el sidebar
 - **Actualizaciones de Progreso**: Sistema de comentarios para seguimiento de tareas
+- **Enlaces de Recursos**: Agregar enlaces y recursos a las tareas
 - **Wiki de Documentación**: Documentación dinámica organizada en secciones y páginas
 - **Métricas de Usuario**: Panel administrativo con análisis de rendimiento
+- **Modo Oscuro/Claro**: Tema personalizable con persistencia
 - **Diseño Responsivo**: Interfaz adaptable a dispositivos móviles
 - **Keep-Alive**: Sistema de ping automático para prevenir suspensión del servidor
 
@@ -37,6 +41,7 @@ web/
 │   │   ├── dashboard/           # Panel principal
 │   │   ├── docs/                # Vista de documentación pública
 │   │   │   └── [slug]/[pageId]/ # Navegación dinámica de docs
+│   │   ├── notifications/       # Centro de notificaciones del usuario
 │   │   └── tasks/               # Gestión de tareas
 │   │       ├── [id]/            # Vista detallada de tarea
 │   │       ├── my-tasks/        # Tareas asignadas al usuario
@@ -109,15 +114,27 @@ Usuario → Middleware (Auth/Role Check) → Page Component (Server) → Supabas
 4. `assignUserToTask()` crea registros en `task_assignments`
 5. Status cambia automáticamente a `pending` cuando se asigna
 6. **Gestionar solicitudes**: Admin aprueba/rechaza en `/admin/requests`
+   - Puede agregar comentarios opcionales al aprobar/rechazar
+   - El usuario recibe notificación con el comentario
+7. **Dar feedback**: Admin puede comentar en cualquier tarea
+   - Los comentarios notifican automáticamente a todos los usuarios asignados
+   - Útil para dar feedback sobre actualizaciones de progreso
 
 **Flujo para Usuarios**:
 1. **Ver tareas**: Acceden a `/tasks`, `/tasks/unassigned`, o `/tasks/my-tasks`
 2. **Solicitar asignación**: Clic en "Request Assignment" → `RequestAssignmentButton`
+   - Disponible en tareas no asignadas
+   - Disponible en tareas pendientes con otros usuarios asignados
+   - Disponible en tareas en curso con otros usuarios asignados
+   - **NO disponible** en tareas completadas
 3. `requestTaskAssignment()` crea registro en `assignment_requests`
-4. Espera aprobación del admin
-5. **Actualizar estado**: En tareas asignadas, usa `TaskStatusSelector`
-6. **Comentar progreso**: `TaskComments` muestra y crea comentarios
-7. Server Action `addTaskComment()` inserta en `task_comments`
+4. **Recibir notificación**: Cuando admin responde, recibe notificación
+   - Ve el comentario del admin si lo agregó
+5. **Verificar estado**: Ver en `/notifications` el estado (pendiente, aprobada, rechazada)
+6. **Actualizar estado**: En tareas asignadas, usa `TaskStatusSelector`
+7. **Comentar progreso**: `TaskComments` muestra y crea comentarios
+8. **Recibir feedback**: Notificaciones cuando admin comenta en sus tareas
+9. Server Action `addTaskComment()` inserta en `task_comments`
 
 **Estados de tareas**:
 - `unassigned`: Sin usuarios asignados
@@ -130,15 +147,74 @@ Usuario → Middleware (Auth/Role Check) → Page Component (Server) → Supabas
 - createTask(): Solo admin, crea nueva tarea
 - updateTask(): Solo admin, actualiza cualquier campo
 - deleteTask(): Solo admin, elimina tarea
-- assignUserToTask(): Admin asigna usuario a tarea
-- unassignUserFromTask(): Admin desasigna usuario
-- requestTaskAssignment(): Usuario solicita asignación
-- handleAssignmentRequest(): Admin aprueba/rechaza solicitud
+- assignUsersToTask(): Admin asigna usuario(s) a tarea
+- requestAssignment(): Usuario solicita asignación
+- handleAssignmentRequest(requestId, action, comment?): Admin aprueba/rechaza con comentario opcional
+- getUserAssignmentRequests(): Obtiene solicitudes del usuario
+- updateTaskStatus(): Usuario asignado actualiza estado
+- addComment(): Usuario asignado o admin añade comentario
+  * Si admin comenta, notifica a todos los usuarios asignados
+```
+
+### 3. Sistema de Notificaciones y Feedback
+
+**Ubicación**: `app/(dashboard)/notifications/`, `app/(dashboard)/layout.tsx`, `components/sidebar.tsx`, `components/review-request-dialog.tsx`
+
+**Base de datos**: Tabla `notifications` + campos adicionales en `assignment_requests`
+
+**Flujo de trabajo**:
+1. **Usuario solicita asignación**: Se crea registro en `assignment_requests`
+2. **Admin responde con comentario opcional**: 
+   - Usa `ReviewRequestDialog` para aprobar/rechazar
+   - Puede agregar comentario explicativo (opcional)
+   - Se guarda `admin_comment`, `reviewed_at`, `reviewed_by`
+3. **Sistema crea notificación**: 
+   - Inserta en tabla `notifications`
+   - Tipo: `assignment_response`
+   - Incluye comentario del admin si existe
+4. **Admin comenta en tarea**:
+   - Admin puede comentar en cualquier tarea (no solo asignadas)
+   - Sistema crea notificaciones tipo `task_comment` para usuarios asignados
+   - Notifica a todos excepto al admin que comentó
+5. **Usuario es notificado**: 
+   - Ve punto rojo pulsante en el sidebar
+   - Contador incluye notificaciones no leídas
+6. **Usuario revisa notificaciones**: 
+   - Accede a `/notifications`
+   - Ve notificaciones generales (comentarios de admin)
+   - Ve historial de solicitudes con comentarios del admin
+7. **Estado actualizado**: Ve todas sus solicitudes y feedback
+
+**Tipos de notificaciones**:
+- **`assignment_response`**: Respuesta a solicitud (aprobada/rechazada) con comentario opcional del admin
+- **`task_comment`**: Admin comentó en una tarea asignada al usuario
+- **`mention`**: (Reservado para futuras funcionalidades)
+
+**Indicadores visuales**:
+- **Punto rojo pulsante**: Aparece junto al icono cuando hay notificaciones sin leer
+- **Badge "Nuevo"**: Marca notificaciones de los últimos 7 días
+- **Borde destacado**: Notificaciones sin leer tienen borde primario
+- **Fondo diferente**: Notificaciones sin leer usan `bg-accent/50`
+- **Íconos por tipo**:
+  - 🔔 Bell: `assignment_response`
+  - 💬 MessageSquare: `task_comment`
+- **Estados de solicitudes**:
+  - 🕐 Pendiente (amarillo)
+  - ✅ Aprobada (verde)
+  - ❌ Rechazada (rojo)
+
+**Para administradores**:
+- **Punto rojo en "Solicitudes de Asignación"**: Indica solicitudes pendientes de revisión
+- **Diálogo de revisión**: Modal con textarea para comentarios
+- **Pueden comentar en todas las tareas**: No necesitan estar asignados
+- Actualización automática cada 30 segundos
+
+### 4dleAssignmentRequest(): Admin aprueba/rechaza solicitud
 - updateTaskStatus(): Usuario asignado actualiza estado
 - addTaskComment(): Usuario asignado añade comentario
 ```
 
-### 3. Sistema de Documentación
+### 5. Sistema de Documentación
 
 **Ubicación**: `app/(dashboard)/docs/`, `app/(dashboard)/admin/documentation/`, `app/actions/documentation-actions.ts`
 
@@ -152,7 +228,7 @@ Secciones (documentation_sections)
 1. **Admin crea sección**: `/admin/documentation` → `CreateSectionDialog`
    - Define: título, slug (URL), orden
    - Server Action: `createDocumentationSection()`
-2. **Admin crea páginas**: Dentro de cada sección → `CreatePageDialog`
+2. *6Admin crea páginas**: Dentro de cada sección → `CreatePageDialog`
    - Define: título, contenido (Markdown)
    - Server Action: `createDocumentationPage()`
 3. **Usuarios leen**: Navegan por `/docs/[slug]/[pageId]`
@@ -199,7 +275,8 @@ Secciones (documentation_sections)
 // app/(dashboard)/admin/layout.tsx
 // Verifica rol en servidor antes de renderizar
 // Double-check de seguridad
-```
+``Ver notificaciones | ✅ | ✅ |
+| `
 
 #### Capa 3: Row Level Security (RLS)
 ```sql
@@ -227,18 +304,23 @@ Secciones (documentation_sections)
 | Solicitar asignación | ❌ | ✅ |
 | Actualizar estado (propias) | ✅ | ✅ |
 | Comentar (propias) | ✅ | ✅ |
+| Comentar (cualquier tarea) | ✅ | ❌ |
 | Ver comentarios (todas) | ✅ | ❌ |
-| Aprobar solicitudes | ✅ | ❌ |
+| Aprobar solicitudes con comentario | ✅ | ❌ |
+| Rechazar solicitudes con comentario | ✅ | ❌ |
+| Ver notificaciones | ✅ | ✅ |
+| Recibir notificaciones de feedback | ❌ | ✅ |
 | Gestionar documentación | ✅ | ❌ |
 | Ver documentación | ✅ | ✅ |
 | Ver métricas | ✅ | ❌ |
-
+7
 ### 6. Componentes de UI Interactivos
 
 **Diálogos Modales** (usando `shadcn/ui Dialog`):
 - `CreateTaskDialog`: Formulario de nueva tarea
 - `EditTaskDialog`: Editar tarea existente
 - `AssignTaskDialog`: Selección múltiple de usuarios
+- `ReviewRequestDialog`: Aprobar/rechazar solicitudes con comentario opcional
 - `CreateSectionDialog`: Nueva sección de docs
 - `EditSectionDialog`: Editar sección
 - `CreatePageDialog`: Nueva página de documentación
@@ -252,9 +334,11 @@ Secciones (documentation_sections)
 **Navegación**:
 - `Sidebar`: Navegación principal con íconos
   - Dashboard
-  - Tasks (All, My Tasks, Unassigned)
+  - Notifications (con indicador visual)
   - Documentation
-  - Admin (Requests, Metrics, Docs Management)
+  - Admin (Requests con indicador, Metrics, Docs Management)
+  - User profile dropdown con logout
+  - Theme toggle (modo oscuro/claro)anagement)
   - User profile dropdown con logout
 
 ## Flujo de Trabajo del Usuario
@@ -262,13 +346,18 @@ Secciones (documentation_sections)
 ### Usuario Regular
 
 1. **Inicio de sesión** → `/auth/login`
-2. **Dashboard** → Vista general de tareas y métricas personales
-3. **Buscar tareas** → `/tasks` o `/tasks/unassigned`
-4. **Solicitar asignación** → Clic en tarea → "Request Assignment"
-5. **Esperar aprobación** → Admin debe aprobar en `/admin/requests`
-6. **Trabajar en tarea** → `/tasks/my-tasks` → Abrir tarea asignada
+   - Puede solicitar tareas no asignadas
+   - Puede solicitar tareas con otros usuarios asignados (pendientes o en curso)
+   - No puede solicitar tareas completadas
+5. **Monitorear solicitudes** → Icono de campana con punto rojo indica nuevas respuestas
+6. **Ver notificaciones** → `/notifications` → Estado de todas las solicitudes
+7. **Esperar aprobación** → Admin debe aprobar en `/admin/requests`
+8. **Trabajar en tarea** → `/tasks/my-tasks` → Abrir tarea asignada
+9. **Actualizar estado** → Cambiar de `pending` → `in_progress` → `completed`
+10. **Añadir comentarios** → Documentar progreso y actualizaciones
+11. **Trabajar en tarea** → `/tasks/my-tasks` → Abrir tarea asignada
 7. **Actualizar estado** → Cambiar de `pending` → `in_progress` → `completed`
-8. **Añadir comentarios** → Documentar progreso y actualizaciones
+8. **Añadir comentarios** → Documentar progreso(punto rojo indica pendientes)  y actualizaciones
 9. **Consultar docs** → `/docs` para guías y referencias
 
 ### Administrador (Jose Morales)
@@ -373,7 +462,7 @@ Abrir [http://localhost:3000](http://localhost:3000) en el navegador.
 - **TypeScript**: Tipado estático para mejor DX y menos errores
 - **TailwindCSS**: Utility-first CSS framework
 - **shadcn/ui**: Componentes accesibles y personalizables
-- **Lucide Icons**: Iconos modernos y consistentes
+- **Lucide Icons**: Iconos modernos y consistentes (Bell, MessageSquare, Check, X, etc.)
 - **react-markdown**: Renderizado de Markdown en páginas de docs
 
 ### Backend

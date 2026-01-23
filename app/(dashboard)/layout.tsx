@@ -32,19 +32,26 @@ export default async function DashboardLayout({
   let notificationsCount = 0
   let pendingRequestsCount = 0
 
-  // Para usuarios regulares: contar solicitudes respondidas en los últimos 7 días
+  // Para usuarios regulares: contar notificaciones no leídas en los últimos 7 días
   if (user.role !== "admin") {
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-    const { count } = await supabase
+    const { count: unreadCount } = await supabase
+      .from("notifications")
+      .select("*", { count: 'exact', head: true })
+      .eq("user_id", session.user.id)
+      .eq("read", false)
+      .gte("created_at", sevenDaysAgo.toISOString())
+
+    const { count: requestsCount } = await supabase
       .from("assignment_requests")
       .select("*", { count: 'exact', head: true })
       .eq("user_id", session.user.id)
       .in("status", ["approved", "rejected"])
       .gte("created_at", sevenDaysAgo.toISOString())
 
-    notificationsCount = count || 0
+    notificationsCount = (unreadCount || 0) + (requestsCount || 0)
   }
 
   // Para administradores: contar solicitudes pendientes
