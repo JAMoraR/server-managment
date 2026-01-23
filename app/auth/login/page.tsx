@@ -31,8 +31,8 @@ export default function LoginPage() {
       if (error) throw error
 
       toast({
-        title: "Success",
-        description: "Logged in successfully!",
+        title: "Éxito",
+        description: "¡Sesión iniciada correctamente!",
       })
 
       router.push("/dashboard")
@@ -49,30 +49,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 px-4">
+      <Card className="w-full max-w-md animate-scale-in shadow-2xl">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+          <CardTitle className="text-2xl font-bold">Iniciar sesión</CardTitle>
           <CardDescription>
-            Enter your email and password to access your account
+            Ingresa tu correo y contraseña para acceder a tu cuenta
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-2 animate-fade-in-up" style={{ animationDelay: '100ms', animationFillMode: 'backwards' }}>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="tu@ejemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-2 animate-fade-in-up" style={{ animationDelay: '200ms', animationFillMode: 'backwards' }}>
+              <Label htmlFor="password">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
@@ -83,14 +83,14 @@ export default function LoginPage() {
               />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex flex-col space-y-4 animate-fade-in-up" style={{ animationDelay: '300ms', animationFillMode: 'backwards' }}>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? "Iniciando sesión..." : "Iniciar sesión"}
             </Button>
-            <p className="text-sm text-center text-gray-600">
-              Don't have an account?{" "}
-              <Link href="/auth/register" className="text-primary hover:underline">
-                Sign up
+            <p className="text-sm text-center text-muted-foreground">
+              ¿No tienes una cuenta?{" "}
+              <Link href="/auth/register" className="text-primary hover:underline font-medium">
+                Regístrate
               </Link>
             </p>
           </CardFooter>

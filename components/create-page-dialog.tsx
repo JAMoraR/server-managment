@@ -62,8 +62,8 @@ export function CreatePageDialog({ sections, defaultSectionId }: CreatePageDialo
       })
     } else {
       toast({
-        title: "Success",
-        description: "Page created successfully",
+        title: "Éxito",
+        description: "Página creada correctamente",
       })
       setOpen(false)
       router.refresh()
@@ -83,14 +83,14 @@ export function CreatePageDialog({ sections, defaultSectionId }: CreatePageDialo
       <DialogContent className="sm:max-w-[600px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create Documentation Page</DialogTitle>
+            <DialogTitle>Crear Página de Documentación</DialogTitle>
             <DialogDescription>
-              Add a new page to a documentation section
+              Agregar una nueva página a una sección de documentación
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="section_id">Section</Label>
+              <Label htmlFor="section_id">Sección</Label>
               <Select
                 name="section_id"
                 value={selectedSection}
@@ -98,7 +98,7 @@ export function CreatePageDialog({ sections, defaultSectionId }: CreatePageDialo
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a section" />
+                  <SelectValue placeholder="Selecciona una sección" />
                 </SelectTrigger>
                 <SelectContent>
                   {sections.map((section) => (
@@ -111,11 +111,11 @@ export function CreatePageDialog({ sections, defaultSectionId }: CreatePageDialo
               <input type="hidden" name="section_id" value={selectedSection} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">Título</Label>
               <Input id="title" name="title" required disabled={loading} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="content">Content (Markdown)</Label>
+              <Label htmlFor="content">Contenido (Markdown)</Label>
               <Textarea
                 id="content"
                 name="content"
@@ -127,7 +127,7 @@ export function CreatePageDialog({ sections, defaultSectionId }: CreatePageDialo
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create Page"}
+              {loading ? "Creando..." : "Crear Página"}
             </Button>
           </DialogFooter>
         </form>

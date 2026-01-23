@@ -13,8 +13,10 @@ export async function createTask(formData: FormData) {
 
   const title = formData.get("title") as string
   const description = formData.get("description") as string
+  const linksJson = formData.get("links") as string
 
-  const { error } = await supabase
+  // Create the task first
+  const { data: task, error } = await supabase
     .from("tasks")
     .insert({
       title,
@@ -22,9 +24,36 @@ export async function createTask(formData: FormData) {
       created_by: session.user.id,
       status: "unassigned",
     })
+    .select()
+    .single()
 
   if (error) {
     return { error: error.message }
+  }
+
+  // If there are links, insert them
+  if (linksJson && task) {
+    try {
+      const links = JSON.parse(linksJson)
+      if (links.length > 0) {
+        const linksToInsert = links.map((link: any) => ({
+          task_id: task.id,
+          link_type: link.link_type,
+          name: link.name,
+          url: link.url,
+        }))
+
+        const { error: linksError } = await supabase
+          .from("task_links")
+          .insert(linksToInsert)
+
+        if (linksError) {
+          console.error("Error inserting links:", linksError)
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing links:", e)
+    }
   }
 
   revalidatePath("/tasks")
@@ -35,13 +64,48 @@ export async function createTask(formData: FormData) {
 export async function updateTask(taskId: string, updates: any) {
   const supabase = await createClient()
 
+  // Extract links from updates if present
+  const { links, ...taskUpdates } = updates
+
+  // Update task
   const { error } = await supabase
     .from("tasks")
-    .update(updates)
+    .update(taskUpdates)
     .eq("id", taskId)
 
   if (error) {
     return { error: error.message }
+  }
+
+  // If links are provided, update them
+  if (links !== undefined) {
+    // Delete existing links
+    await supabase
+      .from("task_links")
+      .delete()
+      .eq("task_id", taskId)
+
+    // Insert new links
+    if (links.length > 0) {
+      const linksToInsert = links
+        .filter((link: any) => link.name && link.url) // Only insert valid links
+        .map((link: any) => ({
+          task_id: taskId,
+          link_type: link.link_type,
+          name: link.name,
+          url: link.url,
+        }))
+
+      if (linksToInsert.length > 0) {
+        const { error: linksError } = await supabase
+          .from("task_links")
+          .insert(linksToInsert)
+
+        if (linksError) {
+          console.error("Error updating links:", linksError)
+        }
+      }
+    }
   }
 
   revalidatePath("/tasks")

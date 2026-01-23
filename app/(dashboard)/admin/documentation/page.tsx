@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server"
 import { CreateSectionDialog } from "@/components/create-section-dialog"
 import { DocumentationSectionsList } from "@/components/documentation-sections-list"
 
+// La documentación cambia poco, cache largo
+export const revalidate = 120
+
 export default async function ManageDocumentationPage() {
   const supabase = await createClient()
 
@@ -15,17 +18,19 @@ export default async function ManageDocumentationPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in-down">
         <div>
-          <h1 className="text-3xl font-bold">Manage Documentation</h1>
+          <h1 className="text-3xl font-bold">Gestionar Documentación</h1>
           <p className="text-muted-foreground mt-2">
-            Create and edit documentation sections and pages
+            Crear y editar secciones y páginas de documentación
           </p>
         </div>
         <CreateSectionDialog />
       </div>
 
-      <DocumentationSectionsList sections={sections || []} />
+      <div className="animate-fade-in-up" style={{ animationDelay: '100ms', animationFillMode: 'backwards' }}>
+        <DocumentationSectionsList sections={sections || []} />
+      </div>
     </div>
   )
 }

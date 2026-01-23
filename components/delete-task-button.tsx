@@ -40,8 +40,8 @@ export function DeleteTaskButton({ taskId }: DeleteTaskButtonProps) {
       setLoading(false)
     } else {
       toast({
-        title: "Success",
-        description: "Task deleted successfully",
+        title: "Éxito",
+        description: "Tarea eliminada correctamente",
       })
       router.push("/tasks")
       router.refresh()
@@ -57,17 +57,17 @@ export function DeleteTaskButton({ taskId }: DeleteTaskButtonProps) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Task</DialogTitle>
+          <DialogTitle>Eliminar Tarea</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete this task? This action cannot be undone.
+            ¿Estás seguro de que deseas eliminar esta tarea? Esta acción no se puede deshacer.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-            Cancel
+            Cancelar
           </Button>
           <Button variant="destructive" onClick={handleDelete} disabled={loading}>
-            {loading ? "Deleting..." : "Delete"}
+            {loading ? "Eliminando..." : "Eliminar"}
           </Button>
         </DialogFooter>
       </DialogContent>

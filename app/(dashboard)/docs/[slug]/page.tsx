@@ -34,32 +34,33 @@ export default async function DocsSectionPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Documentation</h1>
+      <div className="animate-fade-in-down">
+        <h1 className="text-3xl font-bold">Documentación</h1>
         <p className="text-muted-foreground mt-2">
-          Project documentation and guides
+          Documentación y guías del proyecto
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-4">
-        <aside className="lg:col-span-1">
+        <aside className="lg:col-span-1 animate-slide-in-left" style={{ animationDelay: '100ms', animationFillMode: 'backwards' }}>
           <DocsSidebar sections={sections || []} currentSectionId={section.id} />
         </aside>
 
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 animate-slide-in-right" style={{ animationDelay: '200ms', animationFillMode: 'backwards' }}>
           <Card>
             <CardContent className="p-6">
               <h2 className="text-2xl font-bold mb-4">{section.title}</h2>
               {section.documentation_pages &&
               section.documentation_pages.length > 0 ? (
                 <div className="space-y-3">
-                  <p className="text-muted-foreground">Pages in this section:</p>
+                  <p className="text-muted-foreground">Páginas en esta sección:</p>
                   <div className="grid gap-3">
-                    {section.documentation_pages.map((page: any) => (
+                    {section.documentation_pages.map((page: any, index) => (
                       <Link
                         key={page.id}
                         href={`/docs/${section.slug}/${page.id}`}
-                        className="block p-4 border rounded-lg hover:bg-accent transition-colors"
+                        className="block p-4 border rounded-lg hover:bg-accent hover:scale-[1.02] transition-all duration-200 animate-fade-in-up"
+                        style={{ animationDelay: `${index * 75}ms`, animationFillMode: 'backwards' }}
                       >
                         <h3 className="font-medium">{page.title}</h3>
                       </Link>
@@ -68,7 +69,7 @@ export default async function DocsSectionPage({
                 </div>
               ) : (
                 <p className="text-muted-foreground">
-                  No pages in this section yet.
+                  No hay páginas en esta sección aún.
                 </p>
               )}
             </CardContent>

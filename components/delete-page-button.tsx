@@ -40,8 +40,8 @@ export function DeletePageButton({ pageId }: DeletePageButtonProps) {
       setLoading(false)
     } else {
       toast({
-        title: "Success",
-        description: "Page deleted successfully",
+        title: "Éxito",
+        description: "Página eliminada correctamente",
       })
       setOpen(false)
       router.refresh()
@@ -57,17 +57,17 @@ export function DeletePageButton({ pageId }: DeletePageButtonProps) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Page</DialogTitle>
+          <DialogTitle>Eliminar Página</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete this page? This action cannot be undone.
+            ¿Estás seguro de que deseas eliminar esta página? Esta acción no se puede deshacer.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-            Cancel
+            Cancelar
           </Button>
           <Button variant="destructive" onClick={handleDelete} disabled={loading}>
-            {loading ? "Deleting..." : "Delete"}
+            {loading ? "Eliminando..." : "Eliminar"}
           </Button>
         </DialogFooter>
       </DialogContent>

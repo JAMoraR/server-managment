@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,12 +18,20 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { Pencil } from "lucide-react"
 import { updateTask } from "@/app/actions/task-actions"
+import { TaskLinksInput, TaskLinkInput } from "@/components/task-links-input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface EditTaskDialogProps {
   task: {
     id: string
     title: string
     description: string
+    task_links?: Array<{
+      id: string
+      link_type: 'plugins' | 'documentacion' | 'tutoriales'
+      name: string
+      url: string
+    }>
   }
 }
 
@@ -32,14 +40,27 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
   const [loading, setLoading] = useState(false)
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
+  const [links, setLinks] = useState<TaskLinkInput[]>([])
   const { toast } = useToast()
   const router = useRouter()
+
+  useEffect(() => {
+    // Initialize links when dialog opens
+    if (open && task.task_links) {
+      setLinks(task.task_links.map(link => ({
+        id: link.id,
+        link_type: link.link_type,
+        name: link.name,
+        url: link.url,
+      })))
+    }
+  }, [open, task.task_links])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    const result = await updateTask(task.id, { title, description })
+    const result = await updateTask(task.id, { title, description, links })
 
     if (result.error) {
       toast({
@@ -49,8 +70,8 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
       })
     } else {
       toast({
-        title: "Success",
-        description: "Task updated successfully",
+        title: "Éxito",
+        description: "Tarea actualizada correctamente",
       })
       setOpen(false)
       router.refresh()
@@ -66,40 +87,53 @@ export function EditTaskDialog({ task }: EditTaskDialogProps) {
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit Task</DialogTitle>
+            <DialogTitle>Editar Tarea</DialogTitle>
             <DialogDescription>
-              Update task details
+              Actualizar detalles de la tarea
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
+          <Tabs defaultValue="general" className="py-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="links">Enlaces</TabsTrigger>
+            </TabsList>
+            <TabsContent value="general" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Título</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Descripción</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={5}
+                  required
+                  disabled={loading}
+                />
+              </div>
+            </TabsContent>
+            <TabsContent value="links" className="mt-4">
+              <TaskLinksInput
+                links={links}
+                onChange={setLinks}
                 disabled={loading}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={5}
-                required
-                disabled={loading}
-              />
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Changes"}
+              {loading ? "Guardando..." : "Guardar Cambios"}
             </Button>
           </DialogFooter>
         </form>

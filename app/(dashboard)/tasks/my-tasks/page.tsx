@@ -3,6 +3,9 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
+// Revalidar cada 30 segundos
+export const revalidate = 30
+
 export default async function MyTasksPage() {
   const supabase = await createClient()
   
@@ -26,17 +29,20 @@ export default async function MyTasksPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">My Tasks</h1>
+      <div className="animate-fade-in-down">
+        <h1 className="text-3xl font-bold">Mis Tareas</h1>
         <p className="text-muted-foreground mt-2">
-          Tasks assigned to you
+          Tareas asignadas a ti
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {myTasks.map((task: any) => (
+        {myTasks.map((task: any, index) => (
           <Link key={task.id} href={`/tasks/${task.id}`}>
-            <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+            <Card 
+              className="h-full hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer animate-fade-in-up"
+              style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'backwards' }}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg line-clamp-2">
@@ -67,11 +73,11 @@ export default async function MyTasksPage() {
       </div>
 
       {myTasks.length === 0 && (
-        <Card>
+        <Card className="animate-scale-in">
           <CardContent className="py-10 text-center">
-            <p className="text-muted-foreground">No tasks assigned to you yet</p>
+            <p className="text-muted-foreground">No tienes tareas asignadas aún</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Check unassigned tasks to request assignment
+              Revisa las tareas sin asignar para solicitar una asignación
             </p>
           </CardContent>
         </Card>

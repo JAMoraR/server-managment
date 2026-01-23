@@ -39,8 +39,8 @@ export function CreateSectionDialog() {
       })
     } else {
       toast({
-        title: "Success",
-        description: "Section created successfully",
+        title: "Éxito",
+        description: "Sección creada correctamente",
       })
       setOpen(false)
       router.refresh()
@@ -54,34 +54,34 @@ export function CreateSectionDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Create Section
+          Crear Sección
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create Documentation Section</DialogTitle>
+            <DialogTitle>Crear Sección de Documentación</DialogTitle>
             <DialogDescription>
-              Add a new section to organize documentation pages
+              Agregar una nueva sección para organizar páginas de documentación
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">Título</Label>
               <Input id="title" name="title" required disabled={loading} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug (URL-friendly)</Label>
+              <Label htmlFor="slug">Slug (URL amigable)</Label>
               <Input
                 id="slug"
                 name="slug"
-                placeholder="my-section"
+                placeholder="mi-seccion"
                 required
                 disabled={loading}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="order">Order</Label>
+              <Label htmlFor="order">Orden</Label>
               <Input
                 id="order"
                 name="order"
@@ -94,7 +94,7 @@ export function CreateSectionDialog() {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create Section"}
+              {loading ? "Creando..." : "Crear Sección"}
             </Button>
           </DialogFooter>
         </form>

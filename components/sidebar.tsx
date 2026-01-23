@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
 import { useState } from "react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface SidebarProps {
   user: {
@@ -51,17 +52,17 @@ export function Sidebar({ user }: SidebarProps) {
   const isAdmin = user.role === "admin"
 
   const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "All Tasks", href: "/tasks", icon: CheckSquare },
-    { name: "My Tasks", href: "/tasks/my-tasks", icon: ClipboardList },
-    { name: "Unassigned Tasks", href: "/tasks/unassigned", icon: UserCheck },
-    { name: "Documentation", href: "/docs", icon: FileText },
+    { name: "Panel de Control", href: "/dashboard", icon: Home },
+    { name: "Todas las Tareas", href: "/tasks", icon: CheckSquare },
+    { name: "Mis Tareas", href: "/tasks/my-tasks", icon: ClipboardList },
+    { name: "Tareas Sin Asignar", href: "/tasks/unassigned", icon: UserCheck },
+    { name: "Documentación", href: "/docs", icon: FileText },
   ]
 
   const adminNavigation = [
-    { name: "Assignment Requests", href: "/admin/requests", icon: Users },
-    { name: "User Metrics", href: "/admin/metrics", icon: Settings },
-    { name: "Manage Docs", href: "/admin/documentation", icon: FileText },
+    { name: "Solicitudes de Asignación", href: "/admin/requests", icon: Users },
+    { name: "Métricas de Usuarios", href: "/admin/metrics", icon: Settings },
+    { name: "Gestionar Documentación", href: "/admin/documentation", icon: FileText },
   ]
 
   const NavLink = ({ item }: { item: typeof navigation[0] }) => {
@@ -69,15 +70,15 @@ export function Sidebar({ user }: SidebarProps) {
     return (
       <Link
         href={item.href}
-        className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
+        className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 ${
           isActive
-            ? "bg-primary text-primary-foreground"
-            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
+            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:scale-[1.02]"
         }`}
         onClick={() => setMobileMenuOpen(false)}
       >
-        <item.icon className="h-5 w-5" />
-        {item.name}
+        <item.icon className={`h-5 w-5 transition-transform ${isActive ? '' : 'group-hover:scale-110'}`} />
+        <span className="font-medium">{item.name}</span>
       </Link>
     )
   }
@@ -105,14 +106,16 @@ export function Sidebar({ user }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 h-screen w-64 bg-background border-r transition-transform lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-40 h-screen w-64 bg-card border-r shadow-lg transition-transform lg:translate-x-0 ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col gap-2">
           {/* Header */}
-          <div className="flex h-16 items-center border-b px-6">
-            <h1 className="text-xl font-bold">Task Manager</h1>
+          <div className="flex h-16 items-center border-b px-6 bg-gradient-to-r from-primary/10 to-transparent">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              Gestor de Tareas
+            </h1>
           </div>
 
           {/* Navigation */}
@@ -127,7 +130,7 @@ export function Sidebar({ user }: SidebarProps) {
               <>
                 <div className="my-4 border-t" />
                 <div className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase">
-                  Admin
+                  Administración
                 </div>
                 <div className="space-y-1">
                   {adminNavigation.map((item) => (
@@ -139,7 +142,12 @@ export function Sidebar({ user }: SidebarProps) {
           </nav>
 
           {/* User menu */}
-          <div className="border-t p-4">
+          <div className="border-t p-4 space-y-3">
+            <div className="flex items-center justify-between px-2">
+              <span className="text-sm font-medium">Tema</span>
+              <ThemeToggle />
+            </div>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="w-full justify-start gap-3 px-2">
@@ -159,11 +167,11 @@ export function Sidebar({ user }: SidebarProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
+                  Cerrar sesión
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

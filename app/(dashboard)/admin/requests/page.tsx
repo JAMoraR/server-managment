@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { handleAssignmentRequest } from "@/app/actions/task-actions"
 
+// Revalidar cada 15 segundos para solicitudes
+export const revalidate = 15
+
 export default async function AssignmentRequestsPage() {
   const supabase = await createClient()
 
@@ -29,23 +32,27 @@ export default async function AssignmentRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Assignment Requests</h1>
+      <div className="animate-fade-in-down">
+        <h1 className="text-3xl font-bold">Solicitudes de Asignación</h1>
         <p className="text-muted-foreground mt-2">
-          Manage user requests to be assigned to tasks
+          Gestionar solicitudes de usuarios para ser asignados a tareas
         </p>
       </div>
 
       <div className="space-y-4">
         {requests && requests.length > 0 ? (
-          requests.map((request: any) => (
-            <Card key={request.id}>
+          requests.map((request: any, index) => (
+            <Card 
+              key={request.id}
+              className="hover:shadow-lg hover:scale-[1.01] transition-all animate-fade-in-up"
+              style={{ animationDelay: `${index * 75}ms`, animationFillMode: 'backwards' }}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg">{request.tasks.title}</CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Requested by {request.users.first_name} {request.users.last_name} (
+                      Solicitado por {request.users.first_name} {request.users.last_name} (
                       {request.users.email})
                     </p>
                   </div>
@@ -61,12 +68,12 @@ export default async function AssignmentRequestsPage() {
                 <div className="flex gap-2">
                   <form action={approveRequest.bind(null, request.id)}>
                     <Button type="submit" size="sm">
-                      Approve
+                      Aprobar
                     </Button>
                   </form>
                   <form action={rejectRequest.bind(null, request.id)}>
                     <Button type="submit" size="sm" variant="outline">
-                      Reject
+                      Rechazar
                     </Button>
                   </form>
                 </div>
@@ -74,9 +81,9 @@ export default async function AssignmentRequestsPage() {
             </Card>
           ))
         ) : (
-          <Card>
+          <Card className="animate-scale-in">
             <CardContent className="py-10 text-center">
-              <p className="text-muted-foreground">No pending requests</p>
+              <p className="text-muted-foreground">No hay solicitudes pendientes</p>
             </CardContent>
           </Card>
         )}

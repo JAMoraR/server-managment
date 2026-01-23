@@ -187,6 +187,32 @@ export interface Database {
           last_ping?: string
         }
       }
+      task_links: {
+        Row: {
+          id: string
+          task_id: string
+          link_type: 'plugins' | 'documentacion' | 'tutoriales'
+          name: string
+          url: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          link_type: 'plugins' | 'documentacion' | 'tutoriales'
+          name: string
+          url: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          link_type?: 'plugins' | 'documentacion' | 'tutoriales'
+          name?: string
+          url?: string
+          created_at?: string
+        }
+      }
     }
   }
 }

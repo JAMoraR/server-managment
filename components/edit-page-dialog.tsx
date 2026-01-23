@@ -66,8 +66,8 @@ export function EditPageDialog({ page, sections }: EditPageDialogProps) {
       })
     } else {
       toast({
-        title: "Success",
-        description: "Page updated successfully",
+        title: "Éxito",
+        description: "Página actualizada correctamente",
       })
       setOpen(false)
       router.refresh()
@@ -86,12 +86,12 @@ export function EditPageDialog({ page, sections }: EditPageDialogProps) {
       <DialogContent className="sm:max-w-[600px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit Page</DialogTitle>
-            <DialogDescription>Update page details</DialogDescription>
+            <DialogTitle>Editar Página</DialogTitle>
+            <DialogDescription>Actualizar detalles de la página</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="section">Section</Label>
+              <Label htmlFor="section">Sección</Label>
               <Select value={sectionId} onValueChange={setSectionId}>
                 <SelectTrigger>
                   <SelectValue />
@@ -106,7 +106,7 @@ export function EditPageDialog({ page, sections }: EditPageDialogProps) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">Título</Label>
               <Input
                 id="title"
                 value={title}
@@ -116,7 +116,7 @@ export function EditPageDialog({ page, sections }: EditPageDialogProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="content">Content (Markdown)</Label>
+              <Label htmlFor="content">Contenido (Markdown)</Label>
               <Textarea
                 id="content"
                 value={content}
@@ -129,7 +129,7 @@ export function EditPageDialog({ page, sections }: EditPageDialogProps) {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Changes"}
+              {loading ? "Guardando..." : "Guardar Cambios"}
             </Button>
           </DialogFooter>
         </form>

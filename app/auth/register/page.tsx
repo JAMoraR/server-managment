@@ -40,8 +40,8 @@ export default function RegisterPage() {
       if (error) throw error
 
       toast({
-        title: "Success",
-        description: "Account created! Please check your email to verify your account.",
+        title: "Éxito",
+        description: "¡Cuenta creada! Por favor revisa tu correo para verificar tu cuenta.",
       })
 
       router.push("/auth/login")
@@ -57,23 +57,23 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 px-4">
+      <Card className="w-full max-w-md animate-scale-in shadow-2xl">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+          <CardTitle className="text-2xl font-bold">Crear una cuenta</CardTitle>
           <CardDescription>
-            Enter your information to create your account
+            Ingresa tu información para crear tu cuenta
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleRegister}>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 animate-fade-in-up" style={{ animationDelay: '100ms', animationFillMode: 'backwards' }}>
               <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName">Nombre</Label>
                 <Input
                   id="firstName"
                   type="text"
-                  placeholder="John"
+                  placeholder="Juan"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   required
@@ -81,11 +81,11 @@ export default function RegisterPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName">Apellido</Label>
                 <Input
                   id="lastName"
                   type="text"
-                  placeholder="Doe"
+                  placeholder="Pérez"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   required
@@ -93,24 +93,24 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-2 animate-fade-in-up" style={{ animationDelay: '200ms', animationFillMode: 'backwards' }}>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="tu@ejemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-2 animate-fade-in-up" style={{ animationDelay: '300ms', animationFillMode: 'backwards' }}>
+              <Label htmlFor="password">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Minimum 6 characters"
+                placeholder="Mínimo 6 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -119,14 +119,14 @@ export default function RegisterPage() {
               />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex flex-col space-y-4 animate-fade-in-up" style={{ animationDelay: '400ms', animationFillMode: 'backwards' }}>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Create account"}
+              {loading ? "Creando cuenta..." : "Crear cuenta"}
             </Button>
-            <p className="text-sm text-center text-gray-600">
-              Already have an account?{" "}
-              <Link href="/auth/login" className="text-primary hover:underline">
-                Sign in
+            <p className="text-sm text-center text-muted-foreground">
+              ¿Ya tienes una cuenta?{" "}
+              <Link href="/auth/login" className="text-primary hover:underline font-medium">
+                Inicia sesión
               </Link>
             </p>
           </CardFooter>

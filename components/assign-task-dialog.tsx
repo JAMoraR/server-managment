@@ -53,8 +53,8 @@ export function AssignTaskDialog({ task, allUsers }: AssignTaskDialogProps) {
       })
     } else {
       toast({
-        title: "Success",
-        description: "Task assignments updated successfully",
+        title: "Éxito",
+        description: "Asignaciones de tarea actualizadas correctamente",
       })
       setOpen(false)
       router.refresh()
@@ -81,13 +81,13 @@ export function AssignTaskDialog({ task, allUsers }: AssignTaskDialogProps) {
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Assign Users</DialogTitle>
+            <DialogTitle>Asignar Usuarios</DialogTitle>
             <DialogDescription>
-              Select users to assign to this task
+              Selecciona usuarios para asignar a esta tarea
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Label>Users</Label>
+            <Label>Usuarios</Label>
             <div className="mt-2 space-y-2 max-h-96 overflow-y-auto">
               {allUsers.map((user) => (
                 <label
@@ -115,7 +115,7 @@ export function AssignTaskDialog({ task, allUsers }: AssignTaskDialogProps) {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Changes"}
+              {loading ? "Guardando..." : "Guardar Cambios"}
             </Button>
           </DialogFooter>
         </form>

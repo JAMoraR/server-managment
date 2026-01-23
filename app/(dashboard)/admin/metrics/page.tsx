@@ -9,6 +9,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+// Revalidar cada 60 segundos para métricas
+export const revalidate = 60
+
 export default async function UserMetricsPage() {
   const supabase = await createClient()
 
@@ -52,28 +55,28 @@ export default async function UserMetricsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">User Metrics</h1>
+      <div className="animate-fade-in-down">
+        <h1 className="text-3xl font-bold">Métricas de Usuarios</h1>
         <p className="text-muted-foreground mt-2">
-          View performance metrics for all users
+          Ver métricas de rendimiento de todos los usuarios
         </p>
       </div>
 
-      <Card>
+      <Card className="animate-scale-in" style={{ animationDelay: '100ms', animationFillMode: 'backwards' }}>
         <CardHeader>
-          <CardTitle>User Performance</CardTitle>
+          <CardTitle>Rendimiento de Usuarios</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead className="text-center">Total Tasks</TableHead>
-                <TableHead className="text-center">Completed</TableHead>
-                <TableHead className="text-center">In Progress</TableHead>
-                <TableHead className="text-center">Pending</TableHead>
-                <TableHead className="text-center">Completion Rate</TableHead>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Correo</TableHead>
+                <TableHead className="text-center">Total de Tareas</TableHead>
+                <TableHead className="text-center">Completadas</TableHead>
+                <TableHead className="text-center">En Progreso</TableHead>
+                <TableHead className="text-center">Pendientes</TableHead>
+                <TableHead className="text-center">Tasa de Completado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

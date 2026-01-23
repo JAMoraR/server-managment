@@ -32,8 +32,8 @@ export function RequestAssignmentButton({
       })
     } else {
       toast({
-        title: "Success",
-        description: "Assignment request sent successfully",
+        title: "Éxito",
+        description: "Solicitud de asignación enviada correctamente",
       })
       router.refresh()
     }
@@ -44,14 +44,14 @@ export function RequestAssignmentButton({
   if (hasPendingRequest) {
     return (
       <Button variant="outline" disabled className="w-full">
-        Request Pending
+        Solicitud Pendiente
       </Button>
     )
   }
 
   return (
     <Button onClick={handleRequest} disabled={loading} className="w-full">
-      {loading ? "Requesting..." : "Request Assignment"}
+      {loading ? "Solicitando..." : "Solicitar Asignación"}
     </Button>
   )
 }

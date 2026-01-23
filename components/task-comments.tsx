@@ -44,8 +44,8 @@ export function TaskComments({ taskId, comments, isAssigned }: TaskCommentsProps
       })
     } else {
       toast({
-        title: "Success",
-        description: "Comment added successfully",
+        title: "Éxito",
+        description: "Comentario agregado correctamente",
       })
       setContent("")
       router.refresh()
@@ -57,12 +57,12 @@ export function TaskComments({ taskId, comments, isAssigned }: TaskCommentsProps
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Progress Updates</CardTitle>
+        <CardTitle>Actualizaciones de Progreso</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-4 max-h-96 overflow-y-auto">
           {comments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No comments yet</p>
+            <p className="text-sm text-muted-foreground">No hay comentarios aún</p>
           ) : (
             comments.map((comment) => (
               <div key={comment.id} className="border-l-2 border-primary pl-4 py-2">
@@ -71,7 +71,7 @@ export function TaskComments({ taskId, comments, isAssigned }: TaskCommentsProps
                     {comment.users.first_name} {comment.users.last_name}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(comment.created_at).toLocaleString()}
+                    {new Date(comment.created_at).toLocaleString('es-MX')}
                   </span>
                 </div>
                 <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
@@ -83,14 +83,14 @@ export function TaskComments({ taskId, comments, isAssigned }: TaskCommentsProps
         {isAssigned && (
           <form onSubmit={handleSubmit} className="space-y-2">
             <Textarea
-              placeholder="Add a progress update..."
+              placeholder="Agregar una actualización de progreso..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={3}
               disabled={loading}
             />
             <Button type="submit" disabled={loading || !content.trim()}>
-              {loading ? "Adding..." : "Add Comment"}
+              {loading ? "Agregando..." : "Agregar Comentario"}
             </Button>
           </form>
         )}

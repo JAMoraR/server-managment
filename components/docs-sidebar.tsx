@@ -66,7 +66,7 @@ export function DocsSidebar({ sections, currentSectionId, currentPageId }: DocsS
                   )}
                   <Link
                     href={`/docs/${section.slug}`}
-                    className={`flex-1 block px-3 py-2 text-sm font-medium rounded-lg hover:bg-accent ${
+                    className={`flex-1 block px-3 py-2 text-sm font-medium rounded-lg hover:bg-accent hover:scale-[1.02] transition-all duration-200 ${
                       isCurrentSection ? "bg-accent" : ""
                     } ${sortedPages.length === 0 ? "ml-8" : ""}`}
                   >

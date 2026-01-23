@@ -8,6 +8,10 @@ import { AssignTaskDialog } from "@/components/assign-task-dialog"
 import { RequestAssignmentButton } from "@/components/request-assignment-button"
 import { EditTaskDialog } from "@/components/edit-task-dialog"
 import { DeleteTaskButton } from "@/components/delete-task-button"
+import { TaskLinksDisplay } from "@/components/task-links-display"
+
+// Revalidar cada 30 segundos
+export const revalidate = 30
 
 export default async function TaskDetailPage({
   params,
@@ -17,57 +21,46 @@ export default async function TaskDetailPage({
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
 
-  const { data: user } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", session?.user.id!)
-    .single()
-
-  const { data: task } = await supabase
-    .from("tasks")
-    .select(`
+  // Cargar todos los datos en paralelo para mejor rendimiento
+  const [userResult, taskResult, commentsResult, allUsersResult, pendingRequestResult] = await Promise.all([
+    supabase.from("users").select("*").eq("id", session?.user.id!).single(),
+    supabase.from("tasks").select(`
       *,
       task_assignments (
         user_id,
         users (id, first_name, last_name, email)
+      ),
+      task_links (
+        id,
+        link_type,
+        name,
+        url
       )
-    `)
-    .eq("id", params.id)
-    .single()
+    `).eq("id", params.id).single(),
+    supabase.from("task_comments").select(`
+      *,
+      users (first_name, last_name)
+    `).eq("task_id", params.id).order("created_at", { ascending: true }),
+    supabase.from("users").select("id, first_name, last_name, email").order("first_name"),
+    supabase.from("assignment_requests").select("*").eq("task_id", params.id).eq("user_id", session?.user.id!).eq("status", "pending").single()
+  ])
+
+  const user = userResult.data
+  const task = taskResult.data
+  const comments = commentsResult.data
+  const allUsers = allUsersResult.data
+  const pendingRequest = pendingRequestResult.data
 
   if (!task) {
     notFound()
   }
 
-  const { data: comments } = await supabase
-    .from("task_comments")
-    .select(`
-      *,
-      users (first_name, last_name)
-    `)
-    .eq("task_id", params.id)
-    .order("created_at", { ascending: true })
-
-  const { data: allUsers } = await supabase
-    .from("users")
-    .select("id, first_name, last_name, email")
-    .order("first_name")
-
   const isAdmin = user?.role === "admin"
   const isAssigned = task.task_assignments?.some((a: any) => a.user_id === session?.user.id)
 
-  // Check if user has pending request
-  const { data: pendingRequest } = await supabase
-    .from("assignment_requests")
-    .select("*")
-    .eq("task_id", params.id)
-    .eq("user_id", session?.user.id!)
-    .eq("status", "pending")
-    .single()
-
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between animate-fade-in-down">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-bold">{task.title}</h1>
@@ -84,7 +77,7 @@ export default async function TaskDetailPage({
             </Badge>
           </div>
           <p className="text-muted-foreground">
-            Created {new Date(task.created_at).toLocaleDateString()}
+            Creado el {new Date(task.created_at).toLocaleDateString('es-MX')}
           </p>
         </div>
         {isAdmin && (
@@ -97,14 +90,25 @@ export default async function TaskDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <Card>
+          <Card className="animate-slide-in-left" style={{ animationDelay: '100ms', animationFillMode: 'backwards' }}>
             <CardHeader>
-              <CardTitle>Description</CardTitle>
+              <CardTitle>Descripción</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="whitespace-pre-wrap">{task.description}</p>
             </CardContent>
           </Card>
+
+          {task.task_links && task.task_links.length > 0 && (
+            <Card className="animate-scale-in" style={{ animationDelay: '200ms', animationFillMode: 'backwards' }}>
+              <CardHeader>
+                <CardTitle>Recursos y Enlaces</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TaskLinksDisplay links={task.task_links} />
+              </CardContent>
+            </Card>
+          )}
 
           {(isAssigned || isAdmin) && (
             <TaskComments
@@ -116,25 +120,25 @@ export default async function TaskDetailPage({
         </div>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="animate-slide-in-right" style={{ animationDelay: '100ms', animationFillMode: 'backwards' }}>
             <CardHeader>
-              <CardTitle>Status</CardTitle>
+              <CardTitle>Estado</CardTitle>
             </CardHeader>
             <CardContent>
               {isAssigned || isAdmin ? (
                 <TaskStatusSelector taskId={task.id} currentStatus={task.status} />
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  You must be assigned to update status
+                  Debes estar asignado para actualizar el estado
                 </p>
               )}
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="animate-slide-in-right" style={{ animationDelay: '200ms', animationFillMode: 'backwards' }}>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Assigned Users</CardTitle>
+                <CardTitle>Usuarios Asignados</CardTitle>
                 {isAdmin && <AssignTaskDialog task={task} allUsers={allUsers || []} />}
               </div>
             </CardHeader>
@@ -144,7 +148,7 @@ export default async function TaskDetailPage({
                   {task.task_assignments.map((assignment: any) => (
                     <li
                       key={assignment.user_id}
-                      className="text-sm flex items-center gap-2"
+                      className="text-sm flex items-center gap-2 hover:bg-accent hover:scale-[1.02] transition-all duration-200 p-2 rounded-lg -m-2"
                     >
                       <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
                         {assignment.users.first_name[0]}
@@ -163,7 +167,7 @@ export default async function TaskDetailPage({
                 </ul>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">No users assigned</p>
+                  <p className="text-sm text-muted-foreground">No hay usuarios asignados</p>
                   {!isAdmin && (
                     <RequestAssignmentButton
                       taskId={task.id}

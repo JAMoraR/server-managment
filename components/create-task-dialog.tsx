@@ -18,10 +18,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { Plus } from "lucide-react"
 import { createTask } from "@/app/actions/task-actions"
+import { TaskLinksInput, TaskLinkInput } from "@/components/task-links-input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export function CreateTaskDialog() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [links, setLinks] = useState<TaskLinkInput[]>([])
   const { toast } = useToast()
   const router = useRouter()
 
@@ -30,6 +33,10 @@ export function CreateTaskDialog() {
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
+    
+    // Add links to formData
+    formData.append("links", JSON.stringify(links))
+    
     const result = await createTask(formData)
 
     if (result.error) {
@@ -40,10 +47,11 @@ export function CreateTaskDialog() {
       })
     } else {
       toast({
-        title: "Success",
-        description: "Task created successfully",
+        title: "Éxito",
+        description: "Tarea creada correctamente",
       })
       setOpen(false)
+      setLinks([]) // Reset links
       router.refresh()
     }
 
@@ -55,41 +63,54 @@ export function CreateTaskDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Create Task
+          Crear Tarea
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create New Task</DialogTitle>
+            <DialogTitle>Crear Nueva Tarea</DialogTitle>
             <DialogDescription>
-              Add a new task to the system
+              Agregar una nueva tarea al sistema
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                name="title"
-                required
+          <Tabs defaultValue="general" className="py-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="links">Enlaces</TabsTrigger>
+            </TabsList>
+            <TabsContent value="general" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Título</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Descripción</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  rows={5}
+                  required
+                  disabled={loading}
+                />
+              </div>
+            </TabsContent>
+            <TabsContent value="links" className="mt-4">
+              <TaskLinksInput
+                links={links}
+                onChange={setLinks}
                 disabled={loading}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                rows={5}
-                required
-                disabled={loading}
-              />
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create Task"}
+              {loading ? "Creando..." : "Crear Tarea"}
             </Button>
           </DialogFooter>
         </form>

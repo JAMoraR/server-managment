@@ -40,8 +40,8 @@ export function DeleteSectionButton({ sectionId }: DeleteSectionButtonProps) {
       setLoading(false)
     } else {
       toast({
-        title: "Success",
-        description: "Section deleted successfully",
+        title: "Éxito",
+        description: "Sección eliminada correctamente",
       })
       setOpen(false)
       router.refresh()
@@ -57,17 +57,17 @@ export function DeleteSectionButton({ sectionId }: DeleteSectionButtonProps) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Section</DialogTitle>
+          <DialogTitle>Eliminar Sección</DialogTitle>
           <DialogDescription>
-            Are you sure? This will also delete all pages in this section.
+            ¿Estás seguro? Esto también eliminará todas las páginas en esta sección.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-            Cancel
+            Cancelar
           </Button>
           <Button variant="destructive" onClick={handleDelete} disabled={loading}>
-            {loading ? "Deleting..." : "Delete"}
+            {loading ? "Eliminando..." : "Eliminar"}
           </Button>
         </DialogFooter>
       </DialogContent>

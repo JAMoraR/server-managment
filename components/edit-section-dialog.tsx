@@ -54,8 +54,8 @@ export function EditSectionDialog({ section }: EditSectionDialogProps) {
       })
     } else {
       toast({
-        title: "Success",
-        description: "Section updated successfully",
+        title: "Éxito",
+        description: "Sección actualizada correctamente",
       })
       setOpen(false)
       router.refresh()
@@ -74,12 +74,12 @@ export function EditSectionDialog({ section }: EditSectionDialogProps) {
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit Section</DialogTitle>
-            <DialogDescription>Update section details</DialogDescription>
+            <DialogTitle>Editar Sección</DialogTitle>
+            <DialogDescription>Actualizar detalles de la sección</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">Título</Label>
               <Input
                 id="title"
                 value={title}
@@ -99,7 +99,7 @@ export function EditSectionDialog({ section }: EditSectionDialogProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="order">Order</Label>
+              <Label htmlFor="order">Orden</Label>
               <Input
                 id="order"
                 type="number"
@@ -112,7 +112,7 @@ export function EditSectionDialog({ section }: EditSectionDialogProps) {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Changes"}
+              {loading ? "Guardando..." : "Guardar Cambios"}
             </Button>
           </DialogFooter>
         </form>

@@ -76,7 +76,7 @@ function SortableSection({
   const sortedPages = [...pages].sort((a, b) => (a.order || 0) - (b.order || 0))
 
   return (
-    <Card ref={setNodeRef} style={style}>
+    <Card ref={setNodeRef} style={style} className="hover:shadow-lg transition-all duration-200">
       <CardHeader className="p-4 pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1">

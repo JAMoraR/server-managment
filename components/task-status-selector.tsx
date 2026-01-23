@@ -38,8 +38,8 @@ export function TaskStatusSelector({ taskId, currentStatus }: TaskStatusSelector
       setStatus(currentStatus) // Revert on error
     } else {
       toast({
-        title: "Success",
-        description: "Status updated successfully",
+        title: "Éxito",
+        description: "Estado actualizado correctamente",
       })
       router.refresh()
     }
@@ -53,10 +53,10 @@ export function TaskStatusSelector({ taskId, currentStatus }: TaskStatusSelector
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="unassigned">Unassigned</SelectItem>
-        <SelectItem value="pending">Pending</SelectItem>
-        <SelectItem value="in_progress">In Progress</SelectItem>
-        <SelectItem value="completed">Completed</SelectItem>
+        <SelectItem value="unassigned">Sin Asignar</SelectItem>
+        <SelectItem value="pending">Pendiente</SelectItem>
+        <SelectItem value="in_progress">En Progreso</SelectItem>
+        <SelectItem value="completed">Completada</SelectItem>
       </SelectContent>
     </Select>
   )
