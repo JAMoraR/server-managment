@@ -150,87 +150,87 @@ export default async function NotificationsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ){request.admin_comment && (
-                    <div className="mb-3 p-3 bg-muted rounded-lg">
-                      <p className="text-xs font-semibold mb-1">Comentario del administrador:</p>
-                      <p className="text-sm">{request.admin_comment}</p>
-                    </div>
-                  )}
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {request.tasks.description}
-                  </p>
-                </CardContent>
-              </Card>
-            )
-          })
-        ) : (
-          <Card className="animate-scale-in">
-            <CardContent className="py-10 text-center">
-              <p className="text-muted-foreground">No tienes solicitudes de asignación</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Cuando solicites ser asignado a una tarea, verás el estado aquí
-              </p>
-            </CardContent>
-          </Card>
-        )}
-        </div>      className={`hover:shadow-lg hover:scale-[1.01] transition-all animate-fade-in-up ${
-                  isNew ? "ring-2 ring-primary" : ""
-                }`}
-                style={{ animationDelay: `${index * 75}ms`, animationFillMode: 'backwards' }}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Link 
-                          href={`/tasks/${request.tasks.id}`}
-                          className="hover:underline"
-                        >
-                          <CardTitle className="text-lg">{request.tasks.title}</CardTitle>
-                        </Link>
-                        {isNew && (
-                          <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-primary text-primary-foreground animate-pulse">
-                            Nuevo
-                          </span>
-                        )}
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Solicitudes de asignación */}
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Historial de Solicitudes</h2>
+        <div className="space-y-4">
+          {requests && requests.length > 0 ? (
+            requests.map((request: any, index) => {
+              const isNew = request.status !== "pending" && isRecent(request.created_at)
+              return (
+                <Card
+                  key={request.id}
+                  className={`hover:shadow-lg hover:scale-[1.01] transition-all animate-fade-in-up ${
+                    isNew ? "ring-2 ring-primary" : ""
+                  }`}
+                  style={{ animationDelay: `${index * 75}ms`, animationFillMode: 'backwards' }}
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Link 
+                            href={`/tasks/${request.tasks.id}`}
+                            className="hover:underline"
+                          >
+                            <CardTitle className="text-lg">{request.tasks.title}</CardTitle>
+                          </Link>
+                          {isNew && (
+                            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-primary text-primary-foreground animate-pulse">
+                              Nuevo
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Solicitado el {new Date(request.created_at).toLocaleDateString('es-MX', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Solicitado el {new Date(request.created_at).toLocaleDateString('es-MX', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
+                      <div className="flex flex-col items-end gap-2">
+                        {getStatusBadge(request.status)}
+                        <Badge variant="secondary" className="text-xs">
+                          {request.tasks.status.replace("_", " ")}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      {getStatusBadge(request.status)}
-                      <Badge variant="secondary" className="text-xs">
-                        {request.tasks.status.replace("_", " ")}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm mb-3">{getStatusMessage(request.status)}</p>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {request.tasks.description}
-                  </p>
-                </CardContent>
-              </Card>
-            )
-          })
-        ) : (
-          <Card className="animate-scale-in">
-            <CardContent className="py-10 text-center">
-              <p className="text-muted-foreground">No tienes solicitudes de asignación</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Cuando solicites ser asignado a una tarea, verás el estado aquí
-              </p>
-            </CardContent>
-          </Card>
-        )}
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm mb-3">{getStatusMessage(request.status)}</p>
+                    {request.admin_comment && (
+                      <div className="mb-3 p-3 bg-muted rounded-lg">
+                        <p className="text-xs font-semibold mb-1">Comentario del administrador:</p>
+                        <p className="text-sm">{request.admin_comment}</p>
+                      </div>
+                    )}
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {request.tasks.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              )
+            })
+          ) : (
+            <Card className="animate-scale-in">
+              <CardContent className="py-10 text-center">
+                <p className="text-muted-foreground">No tienes solicitudes de asignación</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Cuando solicites ser asignado a una tarea, verás el estado aquí
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   )
