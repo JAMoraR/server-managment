@@ -55,7 +55,7 @@ export default async function DocsSectionPage({
                 <div className="space-y-3">
                   <p className="text-muted-foreground">Páginas en esta sección:</p>
                   <div className="grid gap-3">
-                    {section.documentation_pages.map((page: any, index) => (
+                    {section.documentation_pages.map((page: any, index: number) => (
                       <Link
                         key={page.id}
                         href={`/docs/${section.slug}/${page.id}`}
