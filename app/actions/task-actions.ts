@@ -295,5 +295,35 @@ export async function handleAssignmentRequest(requestId: string, action: "approv
   revalidatePath("/admin/requests")
   revalidatePath("/tasks")
   revalidatePath("/dashboard")
+  revalidatePath("/notifications")
   return { success: true }
+}
+
+export async function getUserAssignmentRequests() {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { error: "Not authenticated" }
+  }
+
+  const { data: requests, error } = await supabase
+    .from("assignment_requests")
+    .select(`
+      *,
+      tasks (
+        id,
+        title,
+        description,
+        status
+      )
+    `)
+    .eq("user_id", session.user.id)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  return { requests }
 }

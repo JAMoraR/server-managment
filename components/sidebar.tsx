@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   ClipboardList,
-  UserCheck
+  UserCheck,
+  Bell
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -35,9 +36,11 @@ interface SidebarProps {
     last_name: string
     role: string
   }
+  notificationsCount?: number
+  pendingRequestsCount?: number
 }
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, notificationsCount = 0, pendingRequestsCount = 0 }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -56,17 +59,19 @@ export function Sidebar({ user }: SidebarProps) {
     { name: "Todas las Tareas", href: "/tasks", icon: CheckSquare },
     { name: "Mis Tareas", href: "/tasks/my-tasks", icon: ClipboardList },
     { name: "Tareas Sin Asignar", href: "/tasks/unassigned", icon: UserCheck },
+    { name: "Mis Notificaciones", href: "/notifications", icon: Bell, ...(notificationsCount > 0 && { badge: notificationsCount }) },
     { name: "Documentación", href: "/docs", icon: FileText },
   ]
 
   const adminNavigation = [
-    { name: "Solicitudes de Asignación", href: "/admin/requests", icon: Users },
+    { name: "Solicitudes de Asignación", href: "/admin/requests", icon: Users, ...(pendingRequestsCount > 0 && { badge: pendingRequestsCount }) },
     { name: "Métricas de Usuarios", href: "/admin/metrics", icon: Settings },
     { name: "Gestionar Documentación", href: "/admin/documentation", icon: FileText },
   ]
 
   const NavLink = ({ item }: { item: typeof navigation[0] }) => {
     const isActive = pathname === item.href
+    const hasBadge = item.badge && item.badge > 0
     return (
       <Link
         href={item.href}
@@ -77,8 +82,13 @@ export function Sidebar({ user }: SidebarProps) {
         }`}
         onClick={() => setMobileMenuOpen(false)}
       >
-        <item.icon className={`h-5 w-5 transition-transform ${isActive ? '' : 'group-hover:scale-110'}`} />
-        <span className="font-medium">{item.name}</span>
+        <div className="relative">
+          <item.icon className={`h-5 w-5 transition-transform ${isActive ? '' : 'group-hover:scale-110'}`} />
+          {hasBadge && (
+            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full animate-pulse shadow-lg" />
+          )}
+        </div>
+        <span className="font-medium flex-1">{item.name}</span>
       </Link>
     )
   }

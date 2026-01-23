@@ -143,39 +143,39 @@ export default async function TaskDetailPage({
               </div>
             </CardHeader>
             <CardContent>
-              {task.task_assignments && task.task_assignments.length > 0 ? (
-                <ul className="space-y-2">
-                  {task.task_assignments.map((assignment: any) => (
-                    <li
-                      key={assignment.user_id}
-                      className="text-sm flex items-center gap-2 hover:bg-accent hover:scale-[1.02] transition-all duration-200 p-2 rounded-lg -m-2"
-                    >
-                      <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
-                        {assignment.users.first_name[0]}
-                        {assignment.users.last_name[0]}
-                      </div>
-                      <div>
-                        <div className="font-medium">
-                          {assignment.users.first_name} {assignment.users.last_name}
+              <div className="space-y-3">
+                {task.task_assignments && task.task_assignments.length > 0 ? (
+                  <ul className="space-y-2">
+                    {task.task_assignments.map((assignment: any) => (
+                      <li
+                        key={assignment.user_id}
+                        className="text-sm flex items-center gap-2 hover:bg-accent hover:scale-[1.02] transition-all duration-200 p-2 rounded-lg -m-2"
+                      >
+                        <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
+                          {assignment.users.first_name[0]}
+                          {assignment.users.last_name[0]}
                         </div>
-                        <div className="text-muted-foreground text-xs">
-                          {assignment.users.email}
+                        <div>
+                          <div className="font-medium">
+                            {assignment.users.first_name} {assignment.users.last_name}
+                          </div>
+                          <div className="text-muted-foreground text-xs">
+                            {assignment.users.email}
+                          </div>
                         </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="space-y-3">
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
                   <p className="text-sm text-muted-foreground">No hay usuarios asignados</p>
-                  {!isAdmin && (
-                    <RequestAssignmentButton
-                      taskId={task.id}
-                      hasPendingRequest={!!pendingRequest}
-                    />
-                  )}
-                </div>
-              )}
+                )}
+                {!isAdmin && !isAssigned && task.status !== "completed" && (
+                  <RequestAssignmentButton
+                    taskId={task.id}
+                    hasPendingRequest={!!pendingRequest}
+                  />
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
