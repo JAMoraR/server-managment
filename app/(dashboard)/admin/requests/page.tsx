@@ -11,11 +11,39 @@ export const revalidate = 15
 export default async function AssignmentRequestsPage() {
   const supabase = await createClient()
 
-  const { data: requests } = await supabase
+  // Verificar sesión y usuario actual
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">Error de Sesión</h1>
+        <p className="text-red-500">No hay sesión activa</p>
+      </div>
+    )
+  }
+
+  // Verificar rol del usuario
+  const { data: currentUser } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", session.user.id)
+    .single()
+
+  if (currentUser?.role !== "admin") {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">Acceso Denegado</h1>
+        <p className="text-red-500">No tienes permisos de administrador</p>
+      </div>
+    )
+  }
+
+  const { data: requests, error } = await supabase
     .from("assignment_requests")
     .select(`
       *,
-      users (first_name, last_name, email),
+      users!assignment_requests_user_id_fkey (first_name, last_name, email),
       tasks (id, title, description, status)
     `)
     .eq("status", "pending")
@@ -34,6 +62,15 @@ export default async function AssignmentRequestsPage() {
           Gestionar solicitudes de usuarios para ser asignados a tareas
         </p>
       </div>
+
+      {error && (
+        <Card className="border-red-500">
+          <CardContent className="py-6">
+            <p className="text-red-500 font-semibold">Error al cargar solicitudes:</p>
+            <pre className="text-sm mt-2 text-muted-foreground">{JSON.stringify(error, null, 2)}</pre>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-4">
         {requests && requests.length > 0 ? (

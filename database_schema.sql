@@ -316,26 +316,29 @@ CREATE POLICY "Only admins can delete task links"
 -- Users can view their own requests, admins can view all
 CREATE POLICY "Users can view own requests, admins view all"
   ON public.assignment_requests FOR SELECT
+  TO authenticated
   USING (
     user_id = auth.uid()
     OR EXISTS (
       SELECT 1 FROM public.users
-      WHERE id = auth.uid() AND role = 'admin'
+      WHERE users.id = auth.uid() AND users.role = 'admin'
     )
   );
 
 -- Users can create assignment requests
 CREATE POLICY "Users can create assignment requests"
   ON public.assignment_requests FOR INSERT
+  TO authenticated
   WITH CHECK (user_id = auth.uid());
 
 -- Only admins can update requests (approve/reject)
 CREATE POLICY "Only admins can update requests"
   ON public.assignment_requests FOR UPDATE
+  TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM public.users
-      WHERE id = auth.uid() AND role = 'admin'
+      WHERE users.id = auth.uid() AND users.role = 'admin'
     )
   );
 
