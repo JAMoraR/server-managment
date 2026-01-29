@@ -55,7 +55,8 @@ export function TaskStatusSelector({ taskId, currentStatus }: TaskStatusSelector
       <SelectContent>
         <SelectItem value="unassigned">Sin Asignar</SelectItem>
         <SelectItem value="pending">Pendiente</SelectItem>
-        <SelectItem value="in_progress">En Progreso</SelectItem>
+        <SelectItem value="in_progress">En Curso</SelectItem>
+        <SelectItem value="paused">En Pausa</SelectItem>
         <SelectItem value="completed">Completada</SelectItem>
       </SelectContent>
     </Select>

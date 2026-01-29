@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Plus } from "lucide-react"
 import { CreateTaskDialog } from "@/components/create-task-dialog"
+import { getTaskStatusLabel, getTaskStatusVariant } from "@/lib/task-status"
 
 // Revalidar cada 30 segundos
 export const revalidate = 30
@@ -56,16 +57,10 @@ export default async function TasksPage() {
                     {task.title}
                   </CardTitle>
                   <Badge
-                    variant={
-                      task.status === "completed"
-                        ? "default"
-                        : task.status === "unassigned"
-                        ? "outline"
-                        : "secondary"
-                    }
+                    variant={getTaskStatusVariant(task.status)}
                     className="ml-2 shrink-0"
                   >
-                    {task.status.replace("_", " ")}
+                    {getTaskStatusLabel(task.status)}
                   </Badge>
                 </div>
               </CardHeader>

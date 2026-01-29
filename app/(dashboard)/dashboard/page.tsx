@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckSquare, Clock, AlertCircle, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { getTaskStatusLabel, getTaskStatusVariant } from "@/lib/task-status"
 
 // Revalidar cada 60 segundos para mejor rendimiento
 export const revalidate = 60
@@ -171,17 +173,9 @@ export default async function DashboardPage() {
                           {task.description}
                         </p>
                       </div>
-                      <span
-                        className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                          task.status === "completed"
-                            ? "bg-green-100 text-green-700"
-                            : task.status === "in_progress"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        {task.status.replace("_", " ")}
-                      </span>
+                      <Badge variant={getTaskStatusVariant(task.status)}>
+                        {getTaskStatusLabel(task.status)}
+                      </Badge>
                     </div>
                   </Link>
                 ))}

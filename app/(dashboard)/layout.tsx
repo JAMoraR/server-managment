@@ -2,8 +2,9 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Sidebar } from "@/components/sidebar"
 
-// Revalidar cada 30 segundos para actualizar badges
-export const revalidate = 30
+// Revalidar más frecuentemente para ver notificaciones en tiempo real
+export const revalidate = 0
+export const dynamic = "force-dynamic"
 
 export default async function DashboardLayout({
   children,
@@ -32,36 +33,35 @@ export default async function DashboardLayout({
   let notificationsCount = 0
   let pendingRequestsCount = 0
 
-  // Para usuarios regulares: contar notificaciones no leídas en los últimos 7 días
+  // Para usuarios regulares: contar notificaciones no leídas
   if (user.role !== "admin") {
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    try {
+      const { count: unreadCount } = await supabase
+        .from("notifications")
+        .select("*", { count: 'exact', head: true })
+        .eq("user_id", session.user.id)
+        .eq("read", false)
 
-    const { count: unreadCount } = await supabase
-      .from("notifications")
-      .select("*", { count: 'exact', head: true })
-      .eq("user_id", session.user.id)
-      .eq("read", false)
-      .gte("created_at", sevenDaysAgo.toISOString())
-
-    const { count: requestsCount } = await supabase
-      .from("assignment_requests")
-      .select("*", { count: 'exact', head: true })
-      .eq("user_id", session.user.id)
-      .in("status", ["approved", "rejected"])
-      .gte("created_at", sevenDaysAgo.toISOString())
-
-    notificationsCount = (unreadCount || 0) + (requestsCount || 0)
+      notificationsCount = unreadCount || 0
+    } catch (error) {
+      console.error("Error fetching notifications count:", error)
+      notificationsCount = 0
+    }
   }
 
   // Para administradores: contar solicitudes pendientes
   if (user.role === "admin") {
-    const { count } = await supabase
-      .from("assignment_requests")
-      .select("*", { count: 'exact', head: true })
-      .eq("status", "pending")
+    try {
+      const { count } = await supabase
+        .from("assignment_requests")
+        .select("*", { count: 'exact', head: true })
+        .eq("status", "pending")
 
-    pendingRequestsCount = count || 0
+      pendingRequestsCount = count || 0
+    } catch (error) {
+      console.error("Error fetching pending requests count:", error)
+      pendingRequestsCount = 0
+    }
   }
 
   return (

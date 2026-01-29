@@ -1,25 +1,50 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { CheckCircle2, XCircle, Clock, MessageSquare, Bell } from "lucide-react"
+import { CheckCircle2, XCircle, Clock, MessageSquare, Bell, UserPlus, UserMinus, Check, CheckCheck } from "lucide-react"
+import { MarkAsReadButton } from "@/components/mark-as-read-button"
+import { MarkAllAsReadButton } from "@/components/mark-all-as-read-button"
+import { NotificationsFilter } from "@/components/notifications-filter"
 
-// Revalidar cada 30 segundos
-export const revalidate = 30
+// No cachear esta página para ver notificaciones en tiempo real
+export const revalidate = 0
+export const dynamic = "force-dynamic"
 
-export default async function NotificationsPage() {
+export default async function NotificationsPage({
+  searchParams,
+}: {
+  searchParams: { filter?: string }
+}) {
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
+
+  const filter = searchParams.filter || "all" // "all", "unread", "read"
 
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  // Obtener notificaciones generales
-  const { data: notifications } = await supabase
-    .from("notifications")
-    .select("*")
-    .eq("user_id", session?.user.id!)
-    .order("created_at", { ascending: false })
+  // Obtener notificaciones generales con filtro
+  let notifications = []
+  try {
+    let query = supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", session?.user.id!)
+
+    // Aplicar filtro
+    if (filter === "unread") {
+      query = query.eq("read", false)
+    } else if (filter === "read") {
+      query = query.eq("read", true)
+    }
+
+    const { data } = await query.order("created_at", { ascending: false })
+    notifications = data || []
+  } catch (error) {
+    console.error("Error fetching notifications:", error)
+  }
 
   // Obtener solicitudes (para compatibilidad con el sistema anterior)
   const { data: requests } = await supabase
@@ -47,6 +72,10 @@ export default async function NotificationsPage() {
         return <Bell className="h-4 w-4" />
       case "task_comment":
         return <MessageSquare className="h-4 w-4" />
+      case "task_assignment":
+        return <UserPlus className="h-4 w-4 text-green-600" />
+      case "task_unassignment":
+        return <UserMinus className="h-4 w-4 text-orange-600" />
       default:
         return <Bell className="h-4 w-4" />
     }
@@ -96,16 +125,30 @@ export default async function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div className="animate-fade-in-down">
-        <h1 className="text-3xl font-bold">Mis Notificaciones</h1>
-        <p className="text-muted-foreground mt-2">
-          Notificaciones y estado de tus solicitudes de asignación
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Mis Notificaciones</h1>
+            <p className="text-muted-foreground mt-2">
+              Notificaciones y estado de tus solicitudes de asignación
+            </p>
+          </div>
+          {notifications && notifications.some((n: any) => !n.read) && filter !== "read" && (
+            <MarkAllAsReadButton />
+          )}
+        </div>
       </div>
 
+      {/* Filtros */}
+      <NotificationsFilter currentFilter={filter} />
+
       {/* Notificaciones generales */}
-      {notifications && notifications.length > 0 && (
+      {notifications && notifications.length > 0 ? (
         <div className="space-y-2">
-          <h2 className="text-lg font-semibold">Notificaciones Recientes</h2>
+          <h2 className="text-lg font-semibold">
+            {filter === "all" && "Notificaciones Recientes"}
+            {filter === "unread" && "Notificaciones No Leídas"}
+            {filter === "read" && "Notificaciones Leídas"}
+          </h2>
           <div className="space-y-3">
             {notifications.map((notification: any, index) => {
               const isNew = !notification.read && isRecent(notification.created_at)
@@ -126,26 +169,36 @@ export default async function NotificationsPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
                             {notification.link ? (
-                              <Link href={notification.link} className="font-semibold hover:underline">
+                              <Link href={notification.link} className={`font-semibold hover:underline ${!notification.read ? "font-bold" : ""}`}>
                                 {notification.title}
                               </Link>
                             ) : (
-                              <span className="font-semibold">{notification.title}</span>
+                              <span className={`font-semibold ${!notification.read ? "font-bold" : ""}`}>{notification.title}</span>
                             )}
                             {isNew && (
                               <Badge className="text-xs">Nuevo</Badge>
                             )}
+                            {!notification.read && (
+                              <Badge variant="secondary" className="text-xs">
+                                No leída
+                              </Badge>
+                            )}
                           </div>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {new Date(notification.created_at).toLocaleDateString('es-MX', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {new Date(notification.created_at).toLocaleDateString('es-MX', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                            {!notification.read && (
+                              <MarkAsReadButton notificationId={notification.id} />
+                            )}
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">{notification.message}</p>
+                        <p className={`text-sm text-muted-foreground ${!notification.read ? "font-medium" : ""}`}>{notification.message}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -154,6 +207,16 @@ export default async function NotificationsPage() {
             })}
           </div>
         </div>
+      ) : (
+        <Card className="animate-scale-in">
+          <CardContent className="py-10 text-center">
+            <p className="text-muted-foreground">
+              {filter === "unread" && "No tienes notificaciones sin leer"}
+              {filter === "read" && "No tienes notificaciones leídas"}
+              {filter === "all" && "No tienes notificaciones"}
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Solicitudes de asignación */}

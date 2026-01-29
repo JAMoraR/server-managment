@@ -9,6 +9,7 @@ import { RequestAssignmentButton } from "@/components/request-assignment-button"
 import { EditTaskDialog } from "@/components/edit-task-dialog"
 import { DeleteTaskButton } from "@/components/delete-task-button"
 import { TaskLinksDisplay } from "@/components/task-links-display"
+import { getTaskStatusLabel, getTaskStatusVariant } from "@/lib/task-status"
 
 // Revalidar cada 30 segundos
 export const revalidate = 30
@@ -64,16 +65,8 @@ export default async function TaskDetailPage({
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-bold">{task.title}</h1>
-            <Badge
-              variant={
-                task.status === "completed"
-                  ? "default"
-                  : task.status === "unassigned"
-                  ? "outline"
-                  : "secondary"
-              }
-            >
-              {task.status.replace("_", " ")}
+            <Badge variant={getTaskStatusVariant(task.status)}>
+              {getTaskStatusLabel(task.status)}
             </Badge>
           </div>
           <p className="text-muted-foreground">
@@ -114,6 +107,7 @@ export default async function TaskDetailPage({
             <TaskComments
               taskId={task.id}
               comments={comments || []}
+              currentUserId={session?.user.id}
               isAssigned={isAssigned}
               isAdmin={isAdmin}
             />
@@ -125,7 +119,7 @@ export default async function TaskDetailPage({
             <CardHeader>
               <CardTitle>Estado</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               {isAssigned || isAdmin ? (
                 <TaskStatusSelector taskId={task.id} currentStatus={task.status} />
               ) : (

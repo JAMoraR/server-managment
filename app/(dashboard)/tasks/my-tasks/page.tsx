@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { getTaskStatusLabel, getTaskStatusVariant } from "@/lib/task-status"
 
 // Revalidar cada 30 segundos
 export const revalidate = 30
@@ -49,16 +50,10 @@ export default async function MyTasksPage() {
                     {task.title}
                   </CardTitle>
                   <Badge
-                    variant={
-                      task.status === "completed"
-                        ? "default"
-                        : task.status === "in_progress"
-                        ? "secondary"
-                        : "outline"
-                    }
+                    variant={getTaskStatusVariant(task.status)}
                     className="ml-2 shrink-0"
                   >
-                    {task.status.replace("_", " ")}
+                    {getTaskStatusLabel(task.status)}
                   </Badge>
                 </div>
               </CardHeader>

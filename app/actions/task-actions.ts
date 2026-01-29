@@ -3,6 +3,44 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
+async function uploadCommentImage(file: File, userId: string): Promise<{ url?: string; error?: string }> {
+  const supabase = await createClient()
+  
+  // Validar tipo de archivo
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    return { error: "Tipo de archivo no permitido. Solo se permiten imágenes (JPEG, PNG, GIF, WEBP)." }
+  }
+  
+  // Validar tamaño (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    return { error: "El archivo es muy grande. El tamaño máximo es 5MB." }
+  }
+  
+  // Crear nombre único para el archivo
+  const fileExt = file.name.split('.').pop()
+  const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+  
+  // Subir archivo
+  const { data, error } = await supabase.storage
+    .from('comment-images')
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: false
+    })
+  
+  if (error) {
+    return { error: error.message }
+  }
+  
+  // Obtener URL pública
+  const { data: { publicUrl } } = supabase.storage
+    .from('comment-images')
+    .getPublicUrl(fileName)
+  
+  return { url: publicUrl }
+}
+
 export async function createTask(formData: FormData) {
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
@@ -133,6 +171,30 @@ export async function deleteTask(taskId: string) {
 
 export async function assignUsersToTask(taskId: string, userIds: string[]) {
   const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { error: "Not authenticated" }
+  }
+
+  // Get existing assignments to compare
+  const { data: existingAssignments } = await supabase
+    .from("task_assignments")
+    .select("user_id")
+    .eq("task_id", taskId)
+
+  const existingUserIds = existingAssignments?.map(a => a.user_id) || []
+  const newUserIds = userIds.filter(id => !existingUserIds.includes(id))
+  const removedUserIds = existingUserIds.filter(id => !userIds.includes(id))
+
+  // Get task info and admin info for notifications
+  const [taskResult, adminResult] = await Promise.all([
+    supabase.from("tasks").select("title").eq("id", taskId).single(),
+    supabase.from("users").select("first_name, last_name").eq("id", session.user.id).single()
+  ])
+
+  const task = taskResult.data
+  const admin = adminResult.data
 
   // Delete existing assignments
   await supabase
@@ -151,9 +213,52 @@ export async function assignUsersToTask(taskId: string, userIds: string[]) {
     }
   }
 
+  // If task had users but now has none, change status to 'paused'
+  if (existingUserIds.length > 0 && userIds.length === 0) {
+    await supabase
+      .from("tasks")
+      .update({ status: "paused" })
+      .eq("id", taskId)
+  }
+
+  // Create notifications
+  const notifications = []
+
+  // Notify newly assigned users
+  if (newUserIds.length > 0 && task && admin) {
+    const addedNotifications = newUserIds
+      .map(userId => ({
+        user_id: userId,
+        type: "task_assignment",
+        title: `Nueva tarea asignada: ${task.title}`,
+        message: `${admin.first_name} ${admin.last_name} te ha asignado una nueva tarea.`,
+        link: `/tasks/${taskId}`
+      }))
+    notifications.push(...addedNotifications)
+  }
+
+  // Notify removed users
+  if (removedUserIds.length > 0 && task && admin) {
+    const removedNotifications = removedUserIds
+      .map(userId => ({
+        user_id: userId,
+        type: "task_unassignment",
+        title: `Removido de tarea: ${task.title}`,
+        message: `${admin.first_name} ${admin.last_name} te ha removido de esta tarea.`,
+        link: `/tasks/${taskId}`
+      }))
+    notifications.push(...removedNotifications)
+  }
+
+  // Insert all notifications
+  if (notifications.length > 0) {
+    await supabase.from("notifications").insert(notifications)
+  }
+
   revalidatePath("/tasks")
   revalidatePath(`/tasks/${taskId}`)
   revalidatePath("/dashboard")
+  revalidatePath("/notifications")
   return { success: true }
 }
 
@@ -201,12 +306,119 @@ export async function updateTaskStatus(taskId: string, status: string) {
   return { success: true }
 }
 
-export async function addComment(taskId: string, content: string) {
+export async function pauseTask(taskId: string, reason: string) {
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
 
   if (!session) {
     return { error: "Not authenticated" }
+  }
+
+  // Check if user is assigned to the task or is admin
+  const { data: assignment } = await supabase
+    .from("task_assignments")
+    .select("*")
+    .eq("task_id", taskId)
+    .eq("user_id", session.user.id)
+    .single()
+
+  const { data: user } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", session.user.id)
+    .single()
+
+  if (!assignment && user?.role !== "admin") {
+    return { error: "Not authorized to pause this task" }
+  }
+
+  const { error } = await supabase
+    .from("tasks")
+    .update({ 
+      status: "paused",
+      paused_reason: reason,
+      paused_by: session.user.id,
+      paused_at: new Date().toISOString()
+    })
+    .eq("id", taskId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/tasks")
+  revalidatePath(`/tasks/${taskId}`)
+  revalidatePath("/dashboard")
+  return { success: true }
+}
+
+export async function resumeTask(taskId: string) {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { error: "Not authenticated" }
+  }
+
+  // Check if user is assigned to the task or is admin
+  const { data: assignment } = await supabase
+    .from("task_assignments")
+    .select("*")
+    .eq("task_id", taskId)
+    .eq("user_id", session.user.id)
+    .single()
+
+  const { data: user } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", session.user.id)
+    .single()
+
+  if (!assignment && user?.role !== "admin") {
+    return { error: "Not authorized to resume this task" }
+  }
+
+  const { error } = await supabase
+    .from("tasks")
+    .update({ 
+      status: "pending",
+      paused_reason: null,
+      paused_by: null,
+      paused_at: null
+    })
+    .eq("id", taskId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/tasks")
+  revalidatePath(`/tasks/${taskId}`)
+  revalidatePath("/dashboard")
+  return { success: true }
+}
+
+export async function addComment(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { error: "Not authenticated" }
+  }
+
+  const taskId = formData.get("taskId") as string
+  const content = formData.get("content") as string
+  const image = formData.get("image") as File | null
+
+  let imageUrl: string | null = null
+
+  // Si hay una imagen, subirla primero
+  if (image && image.size > 0) {
+    const uploadResult = await uploadCommentImage(image, session.user.id)
+    if (uploadResult.error) {
+      return { error: uploadResult.error }
+    }
+    imageUrl = uploadResult.url || null
   }
 
   // Insert comment
@@ -216,6 +428,7 @@ export async function addComment(taskId: string, content: string) {
       task_id: taskId,
       user_id: session.user.id,
       content,
+      image_url: imageUrl,
     })
     .select()
     .single()
@@ -255,6 +468,126 @@ export async function addComment(taskId: string, content: string) {
 
   revalidatePath(`/tasks/${taskId}`)
   revalidatePath("/notifications")
+  return { success: true }
+}
+
+export async function updateComment(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { error: "Not authenticated" }
+  }
+
+  const commentId = formData.get("commentId") as string
+  const taskId = formData.get("taskId") as string
+  const content = formData.get("content") as string
+  const image = formData.get("image") as File | null
+  const removeImage = formData.get("removeImage") === "true"
+
+  // Verify the user owns this comment
+  const { data: comment } = await supabase
+    .from("task_comments")
+    .select("user_id, image_url")
+    .eq("id", commentId)
+    .single()
+
+  if (!comment || comment.user_id !== session.user.id) {
+    return { error: "Not authorized to update this comment" }
+  }
+
+  let imageUrl: string | null | undefined = undefined
+
+  // Si se está eliminando la imagen
+  if (removeImage && comment.image_url) {
+    // Extraer el path del archivo de la URL
+    const urlParts = comment.image_url.split('/comment-images/')
+    if (urlParts.length > 1) {
+      const filePath = urlParts[1]
+      await supabase.storage.from('comment-images').remove([filePath])
+    }
+    imageUrl = null
+  }
+  // Si hay una nueva imagen, subirla
+  else if (image && image.size > 0) {
+    // Eliminar imagen anterior si existe
+    if (comment.image_url) {
+      const urlParts = comment.image_url.split('/comment-images/')
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1]
+        await supabase.storage.from('comment-images').remove([filePath])
+      }
+    }
+    
+    const uploadResult = await uploadCommentImage(image, session.user.id)
+    if (uploadResult.error) {
+      return { error: uploadResult.error }
+    }
+    imageUrl = uploadResult.url || null
+  }
+
+  // Update comment
+  const updateData: any = {
+    content,
+    updated_at: new Date().toISOString(),
+  }
+  
+  if (imageUrl !== undefined) {
+    updateData.image_url = imageUrl
+  }
+
+  const { error } = await supabase
+    .from("task_comments")
+    .update(updateData)
+    .eq("id", commentId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath(`/tasks/${taskId}`)
+  return { success: true }
+}
+
+export async function deleteComment(commentId: string, taskId: string) {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { error: "Not authenticated" }
+  }
+
+  // Verify the user owns this comment and get image_url
+  const { data: comment } = await supabase
+    .from("task_comments")
+    .select("user_id, image_url")
+    .eq("id", commentId)
+    .single()
+
+  if (!comment || comment.user_id !== session.user.id) {
+    return { error: "Not authorized to delete this comment" }
+  }
+
+  // If comment has an image, delete it from storage first
+  if (comment.image_url) {
+    const urlParts = comment.image_url.split('/comment-images/')
+    if (urlParts.length > 1) {
+      const filePath = urlParts[1]
+      await supabase.storage.from('comment-images').remove([filePath])
+    }
+  }
+
+  // Delete comment
+  const { error } = await supabase
+    .from("task_comments")
+    .delete()
+    .eq("id", commentId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath(`/tasks/${taskId}`)
   return { success: true }
 }
 
@@ -396,4 +729,50 @@ export async function getUserAssignmentRequests() {
   }
 
   return { requests }
+}
+
+export async function markNotificationAsRead(notificationId: string) {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { error: "Not authenticated" }
+  }
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read: true })
+    .eq("id", notificationId)
+    .eq("user_id", session.user.id)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/notifications")
+  revalidatePath("/dashboard")
+  return { success: true }
+}
+
+export async function markAllNotificationsAsRead() {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { error: "Not authenticated" }
+  }
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read: true })
+    .eq("user_id", session.user.id)
+    .eq("read", false)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/notifications")
+  revalidatePath("/dashboard")
+  return { success: true }
 }

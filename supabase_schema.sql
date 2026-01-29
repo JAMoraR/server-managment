@@ -26,9 +26,12 @@ CREATE TABLE public.tasks (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL,
   description TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'unassigned' CHECK (status IN ('unassigned', 'pending', 'in_progress', 'completed')),
+  status TEXT NOT NULL DEFAULT 'unassigned' CHECK (status IN ('unassigned', 'pending', 'in_progress', 'completed', 'paused')),
   created_by UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  paused_reason TEXT,
+  paused_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  paused_at TIMESTAMPTZ
 );
 
 -- Task assignments (many-to-many)
@@ -46,7 +49,9 @@ CREATE TABLE public.task_comments (
   task_id UUID NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ,
+  image_url TEXT
 );
 
 -- Assignment requests
@@ -57,6 +62,20 @@ CREATE TABLE public.assignment_requests (
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(task_id, user_id, status)
+);
+
+-- Notifications table
+CREATE TABLE public.notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('assignment_response', 'task_comment', 'mention', 'task_assignment', 'task_unassignment')),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  link TEXT,
+  read BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  assignment_request_id UUID REFERENCES public.assignment_requests(id) ON DELETE CASCADE,
+  task_comment_id UUID REFERENCES public.task_comments(id) ON DELETE CASCADE
 );
 
 -- Documentation sections
@@ -96,6 +115,7 @@ ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.task_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.task_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assignment_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.documentation_sections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.documentation_pages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.keep_alive ENABLE ROW LEVEL SECURITY;
@@ -209,22 +229,49 @@ CREATE POLICY "Users can view comments on assigned tasks"
     )
   );
 
--- Only assigned users can add comments
-CREATE POLICY "Only assigned users can comment"
+-- Only assigned users and admins can add comments
+CREATE POLICY "Only assigned users and admins can comment"
   ON public.task_comments FOR INSERT
   WITH CHECK (
     user_id = auth.uid()
-    AND EXISTS (
-      SELECT 1 FROM public.task_assignments
-      WHERE task_assignments.task_id = task_comments.task_id
-        AND task_assignments.user_id = auth.uid()
+    AND (
+      -- Admin can comment on any task
+      EXISTS (
+        SELECT 1 FROM public.users
+        WHERE id = auth.uid() AND role = 'admin'
+      )
+      OR
+      -- Assigned users can comment
+      EXISTS (
+        SELECT 1 FROM public.task_assignments
+        WHERE task_assignments.task_id = task_comments.task_id
+          AND task_assignments.user_id = auth.uid()
+      )
     )
   );
 
--- Users can delete their own comments
+-- Users can delete their own comments, admins can delete any comment
 CREATE POLICY "Users can delete own comments"
   ON public.task_comments FOR DELETE
-  USING (user_id = auth.uid());
+  USING (
+    user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Users can update their own comments, admins can update any comment
+CREATE POLICY "Users can update own comments"
+  ON public.task_comments FOR UPDATE
+  USING (
+    user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  )
+  WITH CHECK (user_id = auth.uid());
 
 -- ============================================
 -- ASSIGNMENT REQUESTS POLICIES
@@ -255,6 +302,31 @@ CREATE POLICY "Only admins can update requests"
       WHERE id = auth.uid() AND role = 'admin'
     )
   );
+
+-- ============================================
+-- NOTIFICATIONS POLICIES
+-- ============================================
+
+-- Users can view their own notifications
+CREATE POLICY "Users can view own notifications"
+  ON public.notifications FOR SELECT
+  USING (user_id = auth.uid());
+
+-- Users can update their own notifications (mark as read)
+CREATE POLICY "Users can update own notifications"
+  ON public.notifications FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+-- System can insert notifications (via service role or authenticated users)
+CREATE POLICY "Authenticated users can create notifications"
+  ON public.notifications FOR INSERT
+  WITH CHECK (true);
+
+-- Users can delete their own notifications
+CREATE POLICY "Users can delete own notifications"
+  ON public.notifications FOR DELETE
+  USING (user_id = auth.uid());
 
 -- ============================================
 -- DOCUMENTATION POLICIES
@@ -362,14 +434,65 @@ CREATE INDEX idx_task_comments_task_id ON public.task_comments(task_id);
 CREATE INDEX idx_task_comments_user_id ON public.task_comments(user_id);
 CREATE INDEX idx_assignment_requests_status ON public.assignment_requests(status);
 CREATE INDEX idx_assignment_requests_user_id ON public.assignment_requests(user_id);
+CREATE INDEX idx_notifications_user_id ON public.notifications(user_id);
+CREATE INDEX idx_notifications_read ON public.notifications(read);
 CREATE INDEX idx_documentation_pages_section_id ON public.documentation_pages(section_id);
+
+-- ============================================
+-- STORAGE SETUP FOR COMMENT IMAGES
+-- ============================================
+
+-- Create storage bucket for comment images
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('comment-images', 'comment-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage policies for comment images
+CREATE POLICY "Anyone can view comment images"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'comment-images');
+
+CREATE POLICY "Authenticated users can upload comment images"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'comment-images'
+    AND auth.role() = 'authenticated'
+  );
+
+CREATE POLICY "Users can update their own comment images"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'comment-images'
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Users can delete their own comment images"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'comment-images'
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
 
 -- ============================================
 -- COMPLETE!
 -- ============================================
--- Your database is now ready to use.
+-- Your database is now ready to use with all features:
+-- ✓ User authentication and role management
+-- ✓ Task management with 5 states (unassigned, pending, in_progress, completed, paused)
+-- ✓ Task assignments and requests
+-- ✓ Comments with edit/delete functionality
+-- ✓ Image attachments in comments (Storage bucket with RLS)
+-- ✓ Notifications system with read/unread status
+-- ✓ Task assignment/unassignment notifications
+-- ✓ Documentation wiki system
+-- ✓ Performance indexes
+-- ✓ Row Level Security on all tables
+-- 
 -- Remember to:
--- 1. Update the admin email in handle_new_user() function if needed
--- 2. Set your environment variables in .env.local
--- 3. Run 'npm install' in your project directory
+-- 1. Update the admin email in handle_new_user() function if needed (default: jose.morales@example.com)
+-- 2. Set your environment variables in .env.local:
+--    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+--    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+-- 3. Configure Next.js images in next.config.js with your Supabase storage URL
+-- 4. Run 'npm install' in your project directory
 -- ============================================
