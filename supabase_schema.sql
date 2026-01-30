@@ -158,13 +158,18 @@ CREATE POLICY "Only admins can create tasks"
     )
   );
 
--- Only admins can update tasks
-CREATE POLICY "Only admins can update tasks"
+-- Admins and assigned users can update tasks
+CREATE POLICY "Admins and assigned users can update tasks"
   ON public.tasks FOR UPDATE
   USING (
     EXISTS (
       SELECT 1 FROM public.users
       WHERE id = auth.uid() AND role = 'admin'
+    )
+    OR
+    EXISTS (
+      SELECT 1 FROM public.task_assignments
+      WHERE task_id = tasks.id AND user_id = auth.uid()
     )
   );
 

@@ -271,14 +271,15 @@ export async function updateTaskStatus(taskId: string, status: string) {
   }
 
   // Check if user is assigned to the task
-  const { data: assignment } = await supabase
+  const { data: assignments } = await supabase
     .from("task_assignments")
     .select("*")
     .eq("task_id", taskId)
     .eq("user_id", session.user.id)
-    .single()
 
-  if (!assignment) {
+  const isAssigned = assignments && assignments.length > 0
+
+  if (!isAssigned) {
     // Check if user is admin
     const { data: user } = await supabase
       .from("users")
@@ -287,7 +288,7 @@ export async function updateTaskStatus(taskId: string, status: string) {
       .single()
 
     if (user?.role !== "admin") {
-      return { error: "Not authorized to update this task" }
+      return { error: "No tienes autorización para actualizar esta tarea. Solo los usuarios asignados y administradores pueden cambiar el estado." }
     }
   }
 
@@ -315,12 +316,13 @@ export async function pauseTask(taskId: string, reason: string) {
   }
 
   // Check if user is assigned to the task or is admin
-  const { data: assignment } = await supabase
+  const { data: assignments } = await supabase
     .from("task_assignments")
     .select("*")
     .eq("task_id", taskId)
     .eq("user_id", session.user.id)
-    .single()
+
+  const isAssigned = assignments && assignments.length > 0
 
   const { data: user } = await supabase
     .from("users")
@@ -328,8 +330,8 @@ export async function pauseTask(taskId: string, reason: string) {
     .eq("id", session.user.id)
     .single()
 
-  if (!assignment && user?.role !== "admin") {
-    return { error: "Not authorized to pause this task" }
+  if (!isAssigned && user?.role !== "admin") {
+    return { error: "No tienes autorización para pausar esta tarea" }
   }
 
   const { error } = await supabase
@@ -361,12 +363,13 @@ export async function resumeTask(taskId: string) {
   }
 
   // Check if user is assigned to the task or is admin
-  const { data: assignment } = await supabase
+  const { data: assignments } = await supabase
     .from("task_assignments")
     .select("*")
     .eq("task_id", taskId)
     .eq("user_id", session.user.id)
-    .single()
+
+  const isAssigned = assignments && assignments.length > 0
 
   const { data: user } = await supabase
     .from("users")
@@ -374,8 +377,8 @@ export async function resumeTask(taskId: string) {
     .eq("id", session.user.id)
     .single()
 
-  if (!assignment && user?.role !== "admin") {
-    return { error: "Not authorized to resume this task" }
+  if (!isAssigned && user?.role !== "admin") {
+    return { error: "No tienes autorización para reanudar esta tarea" }
   }
 
   const { error } = await supabase
